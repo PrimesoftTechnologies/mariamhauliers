@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inspection" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.inspection</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Fleet Inspection" string="Fleet Inspection" name="inspection"
+                     groups="inspection.group_inspection_admin">
+                    <block title="Inspections" name="inspection_settings">
+                        <setting string="Inspection interval"
+                                 help="Vehicles without inspection for longer are shown as overdue on the dashboard.">
+                            <field name="inspection_overdue_days"/>
+                        </setting>
+                    </block>
+                    <block title="Workshop" name="workshop_settings">
+                        <setting string="Fleet Manager approval"
+                                 help="Job cards estimated above this amount must be approved by a Fleet Manager (0 = no limit).">
+                            <field name="inspection_job_manager_approval_amount"/>
+                        </setting>
+                        <setting string="Material shortage"
+                                 help="What happens when an approved material request cannot be served from stock.">
+                            <field name="inspection_mr_purchase_mode" widget="radio"/>
+                        </setting>
+                        <setting string="Workshops" help="Warehouses, issue and consumption locations per workshop.">
+                            <button name="%(inspection.action_fleet_workshop)d" type="action" string="Workshops"
+                                    icon="oi-arrow-right" class="btn-link"/>
+                        </setting>
+                    </block>
+                    <block title="Tyres" name="tyre_settings">
+                        <setting string="Replacement warning"
+                                 help="Warn when a fitted tyre reaches this share of its expected life (km).">
+                            <field name="inspection_tyre_wear_warning_pct"/>
+                        </setting>
+                        <setting string="Positions" help="Wheel / part positions used by inspections and fitments.">
+                            <button name="%(inspection.action_fleet_vehicle_part_position)d" type="action"
+                                    string="Part Positions" icon="oi-arrow-right" class="btn-link"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_inspection_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'inspection', 'bin_size': False}</field>
+    </record>
+</odoo>

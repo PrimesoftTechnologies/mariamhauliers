@@ -1,0 +1,276 @@
+// Inspection dashboard. Colors are tokens so the dark bundle can override them;
+// charts read the same tokens at render time.
+.o_inspection_dashboard {
+    --insp-surface: #ffffff;
+    --insp-page: #f6f6f4;
+    --insp-border: #e4e3df;
+    --insp-text-primary: #0b0b0b;
+    --insp-text-secondary: #52514e;
+    --insp-grid: #ecebe7;
+    --insp-series-1: #2a78d6;
+    // Categorical slots 2-3 (reference palette, validated adjacent & all-pairs): cost split
+    --insp-series-2: #eb6834;
+    --insp-series-3: #1baf7a;
+    // Severity: ordinal blue ramp (low -> high)
+    --insp-ordinal-1: #86b6ef;
+    --insp-ordinal-2: #2a78d6;
+    --insp-ordinal-3: #104281;
+    // Status (reserved, always shipped with icon + label)
+    --insp-good: #0ca30c;
+    --insp-warning: #fab219;
+    --insp-serious: #ec835a;
+    --insp-critical: #d03b3b;
+
+    height: 100%;
+    overflow: auto;
+    background: var(--insp-page);
+    color: var(--insp-text-primary);
+
+    .o_insp_container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 20px 24px 40px;
+    }
+
+    .o_insp_header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .o_insp_title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    .o_insp_subtitle {
+        color: var(--insp-text-secondary);
+        font-size: 0.85rem;
+    }
+    .o_insp_tabs {
+        flex-wrap: wrap;
+    }
+    .o_insp_controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .o_insp_section_title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--insp-text-secondary);
+        margin: 18px 0 8px;
+        font-weight: 600;
+    }
+
+    // ---- KPI tiles ------------------------------------------------------------
+    .o_insp_tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+    }
+    .o_insp_tile {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        text-align: left;
+        padding: 14px 16px;
+        background: var(--insp-surface);
+        border: 1px solid var(--insp-border);
+        border-left: 4px solid transparent;
+        border-radius: 8px;
+        color: inherit;
+        transition: box-shadow 0.15s, transform 0.15s;
+        &:hover {
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+        &:focus-visible {
+            outline: 2px solid var(--insp-series-1);
+            outline-offset: 2px;
+        }
+    }
+    .o_insp_tile_warning { border-left-color: var(--insp-warning); }
+    .o_insp_tile_serious { border-left-color: var(--insp-serious); }
+    .o_insp_tile_critical { border-left-color: var(--insp-critical); }
+    .o_insp_tile_label {
+        font-size: 0.78rem;
+        color: var(--insp-text-secondary);
+        font-weight: 500;
+    }
+    .o_insp_tile_value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        small {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 2px;
+            color: var(--insp-text-secondary);
+        }
+    }
+    .o_insp_tiles_compact .o_insp_tile_value {
+        font-size: 1.4rem;
+    }
+    .o_insp_tile_foot {
+        font-size: 0.75rem;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .o_insp_delta {
+        font-weight: 600;
+        color: var(--insp-text-secondary);
+    }
+
+    // ---- Cards & grid ---------------------------------------------------------
+    .o_insp_grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+    .o_insp_span_4 { grid-column: span 4; }
+    .o_insp_span_6 { grid-column: span 6; }
+    .o_insp_span_8 { grid-column: span 8; }
+    @media (max-width: 1199.98px) {
+        .o_insp_span_4 { grid-column: span 6; }
+        .o_insp_span_8 { grid-column: span 12; }
+    }
+    @media (max-width: 767.98px) {
+        .o_insp_container { padding: 12px 16px 32px; }
+        .o_insp_span_4,
+        .o_insp_span_6,
+        .o_insp_span_8 { grid-column: span 12; }
+    }
+    .o_insp_card {
+        background: var(--insp-surface);
+        border: 1px solid var(--insp-border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        min-width: 0;
+    }
+    .o_insp_card_header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 10px;
+        h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+    }
+    .o_insp_chart {
+        position: relative;
+        height: 220px;
+    }
+    .o_insp_chart_tall {
+        height: 300px;
+    }
+    .o_insp_empty {
+        color: var(--insp-text-secondary);
+        text-align: center;
+        padding: 40px 8px;
+        font-size: 0.9rem;
+    }
+
+    // ---- Result split -----------------------------------------------------------
+    .o_insp_split {
+        display: flex;
+        gap: 2px;
+        height: 14px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 8px 0 16px;
+    }
+    .o_insp_split_seg { height: 100%; }
+    .o_insp_bg_pass { background: var(--insp-good); }
+    .o_insp_bg_pass_defects { background: var(--insp-warning); }
+    .o_insp_bg_fail { background: var(--insp-critical); }
+    .o_insp_bg_cost_labour { background: var(--insp-series-1); }
+    .o_insp_bg_cost_parts { background: var(--insp-series-2); }
+    .o_insp_bg_cost_outside { background: var(--insp-series-3); }
+    .o_insp_legend {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--insp-grid);
+            cursor: pointer;
+            &:last-child { border-bottom: 0; }
+            &:hover { background: var(--insp-page); }
+        }
+    }
+    .o_insp_swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        flex: none;
+    }
+    .o_insp_legend_icon {
+        width: 12px;
+        color: var(--insp-text-secondary);
+        font-size: 0.75rem;
+    }
+    .o_insp_legend_label { flex: 1; }
+    .o_insp_legend_value {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    .o_insp_legend_pct {
+        width: 52px;
+        text-align: right;
+        color: var(--insp-text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    // ---- Tables -------------------------------------------------------------------
+    .o_insp_table {
+        width: 100%;
+        table-layout: fixed;
+        font-size: 0.85rem;
+        th {
+            font-weight: 500;
+            color: var(--insp-text-secondary);
+            font-size: 0.75rem;
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--insp-border);
+        }
+        td {
+            padding: 7px 6px;
+            border-bottom: 1px solid var(--insp-grid);
+            vertical-align: middle;
+            font-variant-numeric: tabular-nums;
+        }
+        tbody tr {
+            cursor: pointer;
+            &:hover td { background: var(--insp-page); }
+            &:last-child td { border-bottom: 0; }
+        }
+    }
+}
+
+// ---- Checklist search toolbar (form view) ---------------------------------------
+.o_inspection_checklist_toolbar {
+    .o_inspection_checklist_search {
+        max-width: 340px;
+        min-width: 220px;
+        flex: 1 1 260px;
+    }
+    .form-select {
+        max-width: 280px;
+    }
+}

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="fleet_vehicle_view_form_inspection" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inspection</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_view_inspections" type="object" class="oe_stat_button"
+                        icon="fa-check-square-o" groups="inspection.group_inspection_inspector">
+                    <div class="o_stat_info">
+                        <field name="inspection_count" class="o_stat_value"/>
+                        <span class="o_stat_text">Inspections</span>
+                    </div>
+                </button>
+                <button name="action_view_job_cards" type="object" class="oe_stat_button" icon="fa-wrench"
+                        groups="inspection.group_inspection_inspector">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="open_job_card_count" class="d-inline"/> / <field name="job_card_count" class="d-inline"/>
+                        </span>
+                        <span class="o_stat_text">Open Job Cards</span>
+                    </div>
+                </button>
+                <button name="action_view_installed_parts" type="object" class="oe_stat_button" icon="fa-circle-o-notch"
+                        groups="inspection.group_inspection_inspector">
+                    <field name="installed_part_count" widget="statinfo" string="Fitted Parts"/>
+                </button>
+            </div>
+            <div name="button_box" position="after">
+                <div class="alert alert-success py-2 mb-2" role="status" groups="inspection.group_inspection_inspector"
+                     invisible="last_inspection_result != 'pass'">
+                    <i class="fa fa-clipboard me-1" title="Inspection"/>
+                    Last inspection: <field name="last_inspection_date" class="d-inline fw-bold"/>
+                    - <field name="last_inspection_result" class="d-inline fw-bold"/>
+                    <button name="action_new_inspection" type="object" string="New Inspection"
+                            class="btn-link ms-2 p-0" icon="fa-plus"/>
+                </div>
+                <div class="alert alert-warning py-2 mb-2" role="status" groups="inspection.group_inspection_inspector"
+                     invisible="last_inspection_result != 'pass_defects'">
+                    <i class="fa fa-clipboard me-1" title="Inspection"/>
+                    Last inspection: <field name="last_inspection_date" class="d-inline fw-bold"/>
+                    - <field name="last_inspection_result" class="d-inline fw-bold"/>
+                    <button name="action_new_inspection" type="object" string="New Inspection"
+                            class="btn-link ms-2 p-0" icon="fa-plus"/>
+                </div>
+                <div class="alert alert-danger py-2 mb-2" role="status" groups="inspection.group_inspection_inspector"
+                     invisible="last_inspection_result != 'fail'">
+                    <i class="fa fa-clipboard me-1" title="Inspection"/>
+                    Last inspection: <field name="last_inspection_date" class="d-inline fw-bold"/>
+                    - <field name="last_inspection_result" class="d-inline fw-bold"/>
+                    <button name="action_new_inspection" type="object" string="New Inspection"
+                            class="btn-link ms-2 p-0" icon="fa-plus"/>
+                </div>
+            </div>
+            <xpath expr="//notebook" position="inside">
+                <page string="Tyres &amp; Fitted Parts" name="fitted_parts" groups="inspection.group_inspection_inspector">
+                    <div class="d-flex gap-2 mb-2">
+                        <button name="%(inspection.action_report_vehicle_tyre_register)d" type="action"
+                                string="Print Tyre Register" icon="fa-print" class="btn-secondary"/>
+                        <span class="text-muted ms-2" groups="inspection.group_workshop_supervisor">
+                            Maintenance cost: <field name="maintenance_cost" class="d-inline fw-bold"/>
+                        </span>
+                    </div>
+                    <field name="current_part_ids" readonly="1">
+                        <list default_order="position_id">
+                            <field name="position_id"/>
+                            <field name="product_id"/>
+                            <field name="part_number"/>
+                            <field name="install_date"/>
+                            <field name="mileage_at_install"/>
+                            <field name="current_km"/>
+                            <field name="tread_depth_at_install" optional="hide"/>
+                            <field name="job_id" optional="show"/>
+                            <button name="action_remove_part" type="object" icon="fa-sign-out" title="Remove"
+                                    class="btn-link" groups="inspection.group_workshop_supervisor"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

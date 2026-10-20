@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="inspection.ChecklistField">
+        <div class="o_inspection_checklist">
+            <div class="o_inspection_checklist_toolbar d-flex flex-wrap align-items-center gap-2 mb-2"
+                 t-if="records.length">
+                <div class="input-group o_inspection_checklist_search">
+                    <span class="input-group-text"><i class="fa fa-search" aria-hidden="true"/></span>
+                    <input type="search" class="form-control" aria-label="Search checklist"
+                           placeholder="Search item, category, serial or comment..."
+                           t-model="filter.search" t-on-keydown="onSearchKeydown"/>
+                </div>
+                <select class="form-select w-auto" aria-label="Filter by category"
+                        t-on-change="onCategoryChange">
+                    <option value="" t-att-selected="!filter.categoryId">All categories</option>
+                    <t t-foreach="categories" t-as="category" t-key="category.id">
+                        <option t-att-value="category.id" t-att-selected="filter.categoryId === category.id">
+                            <t t-esc="category.name"/>
+                            <t t-if="category.defective"> (<t t-esc="category.defective"/> defective)</t>
+                        </option>
+                    </t>
+                </select>
+                <div class="btn-group" role="group" aria-label="Filter by result">
+                    <button type="button" class="btn btn-sm"
+                            t-att-class="filter.result === 'all' ? 'btn-primary' : 'btn-outline-secondary'"
+                            t-on-click="() => this.setResult('all')">
+                        All <span class="badge rounded-pill text-bg-light ms-1" t-esc="counts.all"/>
+                    </button>
+                    <button type="button" class="btn btn-sm"
+                            t-att-class="filter.result === 'good' ? 'btn-success' : 'btn-outline-secondary'"
+                            t-on-click="() => this.setResult('good')">
+                        <i class="fa fa-check me-1" aria-hidden="true"/>Good
+                        <span class="badge rounded-pill text-bg-light ms-1" t-esc="counts.good"/>
+                    </button>
+                    <button type="button" class="btn btn-sm"
+                            t-att-class="filter.result === 'defective' ? 'btn-danger' : 'btn-outline-secondary'"
+                            t-on-click="() => this.setResult('defective')">
+                        <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>Defective
+                        <span class="badge rounded-pill text-bg-light ms-1" t-esc="counts.defective"/>
+                    </button>
+                    <button type="button" class="btn btn-sm"
+                            t-att-class="filter.result === 'na' ? 'btn-secondary' : 'btn-outline-secondary'"
+                            t-on-click="() => this.setResult('na')">
+                        N/A <span class="badge rounded-pill text-bg-light ms-1" t-esc="counts.na"/>
+                    </button>
+                </div>
+                <span class="text-muted small ms-auto" t-if="isFiltered">
+                    Showing <b t-esc="visibleCount"/> of <t t-esc="counts.all"/>
+                    <button type="button" class="btn btn-link btn-sm p-0 ms-2" t-on-click="clearFilters">
+                        Clear filters
+                    </button>
+                </span>
+            </div>
+            <t t-call="web.X2ManyField"/>
+        </div>
+    </t>
+
+</templates>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_fleet_job_card" model="ir.actions.report">
+        <field name="name">Job Card</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_fleet_job_card</field>
+        <field name="report_file">inspection.report_fleet_job_card</field>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle_log_services"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Job Card - %s' % (object.job_number)</field>
+    </record>
+
+    <record id="action_report_fleet_material_request" model="ir.actions.report">
+        <field name="name">Material Request</field>
+        <field name="model">fleet.job.material.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_fleet_material_request</field>
+        <field name="report_file">inspection.report_fleet_material_request</field>
+        <field name="binding_model_id" ref="model_fleet_job_material_request"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Material Request - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_tyre_history_card" model="ir.actions.report">
+        <field name="name">Tyre / Part History Card</field>
+        <field name="model">stock.lot</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_tyre_history_card</field>
+        <field name="report_file">inspection.report_tyre_history_card</field>
+        <field name="binding_model_id" ref="stock.model_stock_lot"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'History Card - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_vehicle_tyre_register" model="ir.actions.report">
+        <field name="name">Vehicle Tyre Register</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_vehicle_tyre_register</field>
+        <field name="report_file">inspection.report_vehicle_tyre_register</field>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Tyre Register - %s' % (object.license_plate or object.name)</field>
+    </record>
+
+    <record id="action_report_workshop_summary" model="ir.actions.report">
+        <field name="name">Workshop Summary</field>
+        <field name="model">fleet.workshop.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_workshop_summary</field>
+        <field name="report_file">inspection.report_workshop_summary</field>
+        <field name="print_report_name">'Workshop Summary'</field>
+    </record>
+</odoo>

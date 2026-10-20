@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ======================= TYRE / PART HISTORY CARD (one serial number) ======================= -->
+    <template id="report_tyre_history_card">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <t t-set="show_cost" t-value="user.has_group('inspection.group_workshop_supervisor')"/>
+                    <div class="page">
+                        <p class="insp-h">History Card - <span t-field="o.name"/></p>
+                        <p class="insp-sub"><span t-field="o.product_id.display_name"/> - <span t-field="o.fleet_status"/></p>
+                        <table style="width:100%; border-spacing: 6px; border-collapse: separate;">
+                            <tr>
+                                <td class="insp-kpi"><div class="v" t-esc="o.fleet_install_count"/><div class="l">Fitments</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.0f' % o.fleet_km_total"/><div class="l">Total km</div></td>
+                                <td class="insp-kpi"><div class="v"><t t-esc="'%.0f' % o.fleet_wear_pct"/>%</div><div class="l">Life used</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="o.fleet_retread_count"/><div class="l">Retreads</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.1f' % o.fleet_last_tread_depth if o.fleet_last_tread_depth else '-'"/><div class="l">Last tread (mm)</div></td>
+                                <td t-if="show_cost" class="insp-kpi"><div class="v" t-esc="'%.4f' % o.fleet_cost_per_km"/><div class="l">Cost / km</div></td>
+                            </tr>
+                        </table>
+                        <table class="insp-table" style="margin-top: 6px;">
+                            <tr>
+                                <td><strong>Currently on:</strong> <span t-field="o.fleet_vehicle_id.display_name"/></td>
+                                <td><strong>Position:</strong> <span t-field="o.fleet_position_id.display_name"/></td>
+                                <td><strong>Fitted on:</strong> <span t-field="o.fleet_install_date"/></td>
+                                <td><strong>Expected life:</strong> <t t-esc="'%.0f' % o.product_id.fleet_expected_life_km"/> km</td>
+                            </tr>
+                        </table>
+
+                        <div class="insp-section">Fitment History</div>
+                        <table class="insp-table">
+                            <thead>
+                                <tr><th>Vehicle</th><th>Position</th><th>Fitted</th><th>Km at fit</th><th>Removed</th>
+                                    <th>Km at removal</th><th>Km covered</th><th>Tread fit / removal</th><th>Reason</th><th>Sent to</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.installed_part_ids.sorted('install_date')" t-as="p">
+                                    <td t-esc="p.vehicle_id.display_name"/>
+                                    <td t-esc="p.position_id.code or ''"/>
+                                    <td><span t-field="p.install_date"/></td>
+                                    <td t-esc="'%.0f' % p.mileage_at_install"/>
+                                    <td><span t-field="p.remove_date"/></td>
+                                    <td t-esc="'%.0f' % p.mileage_at_removal if p.mileage_at_removal else ''"/>
+                                    <td t-esc="'%.0f' % p.current_km"/>
+                                    <td><t t-esc="p.tread_depth_at_install or '-'"/> / <t t-esc="p.tread_depth_at_removal or '-'"/></td>
+                                    <td><span t-field="p.removal_reason"/></td>
+                                    <td><span t-field="p.removal_destination"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-set="readings" t-value="o.fleet_inspection_line_ids.filtered(lambda l: l.tread_depth or l.pressure).sorted(lambda l: (l.inspection_date, l.id))"/>
+                        <t t-if="readings">
+                            <div class="insp-section">Inspection Readings</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr><th>Date</th><th>Inspection</th><th>Vehicle</th><th>Position</th><th>Tread (mm)</th>
+                                        <th>Pressure (psi)</th><th>Result</th><th>Comment</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="readings" t-as="r" t-attf-class="#{'insp-row-high' if r.below_min_tread else ''}">
+                                        <td><span t-field="r.inspection_date"/></td>
+                                        <td t-esc="r.inspection_id.name"/>
+                                        <td t-esc="r.vehicle_id.display_name"/>
+                                        <td t-esc="r.position_id.code or ''"/>
+                                        <td t-esc="r.tread_depth"/>
+                                        <td t-esc="r.pressure"/>
+                                        <td t-attf-class="insp-res-#{r.result}"><span t-field="r.result"/></td>
+                                        <td t-esc="r.comment or ''"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- ======================= VEHICLE TYRE REGISTER ======================= -->
+    <template id="report_vehicle_tyre_register">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <t t-set="fitted" t-value="o.current_part_ids.sorted(lambda p: (p.position_id.sequence, p.id))"/>
+                    <t t-set="history" t-value="o.installed_part_ids.filtered(lambda p: p.status == 'removed').sorted('remove_date', reverse=True)"/>
+                    <div class="page">
+                        <p class="insp-h">Tyre &amp; Part Register - <span t-field="o.name"/></p>
+                        <p class="insp-sub">
+                            Plate <span t-field="o.license_plate"/> - Odometer <span t-field="o.odometer"/>
+                            <span t-field="o.odometer_unit"/> - Driver <span t-field="o.driver_id.name"/>
+                        </p>
+
+                        <div class="insp-section">Currently Fitted (<t t-esc="len(fitted)"/>)</div>
+                        <p t-if="not fitted" class="insp-muted">No serialised part recorded on this vehicle.</p>
+                        <table t-if="fitted" class="insp-table">
+                            <thead>
+                                <tr><th>Position</th><th>Part</th><th>Serial No.</th><th>Fitted</th><th>Km at fit</th>
+                                    <th>Km running</th><th>Total km</th><th>Life used</th><th>Last tread (mm)</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="fitted" t-as="p"
+                                    t-attf-class="#{'insp-row-high' if p.lot_id and p.lot_id.fleet_wear_pct &gt;= 90 else ''}">
+                                    <td><b t-esc="p.position_id.code or p.position or ''"/></td>
+                                    <td t-esc="p.product_id.display_name or p.name"/>
+                                    <td t-esc="p.part_number or ''"/>
+                                    <td><span t-field="p.install_date"/></td>
+                                    <td t-esc="'%.0f' % p.mileage_at_install"/>
+                                    <td t-esc="'%.0f' % p.current_km"/>
+                                    <td t-esc="'%.0f' % p.lot_id.fleet_km_total if p.lot_id else ''"/>
+                                    <td><t t-if="p.lot_id and p.lot_id.product_id.fleet_expected_life_km"><t t-esc="'%.0f' % p.lot_id.fleet_wear_pct"/>%</t></td>
+                                    <td t-esc="p.lot_id.fleet_last_tread_depth or ''"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-if="history">
+                            <div class="insp-section">Removal History</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr><th>Removed</th><th>Position</th><th>Part</th><th>Serial No.</th><th>Km covered</th>
+                                        <th>Reason</th><th>Sent to</th><th>Job Card</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="history" t-as="p">
+                                        <td><span t-field="p.remove_date"/></td>
+                                        <td t-esc="p.position_id.code or p.position or ''"/>
+                                        <td t-esc="p.product_id.display_name or p.name"/>
+                                        <td t-esc="p.part_number or ''"/>
+                                        <td t-esc="'%.0f' % p.mileage_covered"/>
+                                        <td><span t-field="p.removal_reason"/></td>
+                                        <td><span t-field="p.removal_destination"/></td>
+                                        <td t-esc="p.removal_job_id.display_name or ''"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

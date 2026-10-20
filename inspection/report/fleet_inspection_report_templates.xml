@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Shared styles (wkhtmltopdf friendly: tables, no flexbox) -->
+    <template id="report_inspection_styles">
+        <style>
+            .insp-h { font-size: 20px; font-weight: bold; margin: 0; }
+            .insp-sub { color: #52514e; font-size: 11px; }
+            .insp-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-weight: bold;
+                          font-size: 12px; color: #ffffff; }
+            .insp-pass { background-color: #0ca30c; }
+            .insp-pass_defects { background-color: #c98500; }
+            .insp-fail { background-color: #d03b3b; }
+            .insp-kpi { border: 1px solid #dddddd; border-radius: 6px; text-align: center; padding: 6px; }
+            .insp-kpi .v { font-size: 18px; font-weight: bold; }
+            .insp-kpi .l { font-size: 10px; color: #52514e; text-transform: uppercase; }
+            .insp-section { background-color: #f1f1ef; padding: 4px 8px; font-weight: bold;
+                            margin-top: 12px; margin-bottom: 4px; font-size: 13px; }
+            .insp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            .insp-table th { background-color: #f7f7f5; border-bottom: 1px solid #bbbbbb; padding: 3px 5px; text-align: left; }
+            .insp-table td { border-bottom: 1px solid #e5e5e5; padding: 3px 5px; vertical-align: top; }
+            .insp-res-good { color: #0b7a0b; font-weight: bold; }
+            .insp-res-defective { color: #d03b3b; font-weight: bold; }
+            .insp-res-na { color: #8a8a85; }
+            .insp-sev-high { color: #d03b3b; font-weight: bold; }
+            .insp-sev-medium { color: #b36b00; font-weight: bold; }
+            .insp-row-high td { background-color: #fdecec; }
+            .insp-row-medium td { background-color: #fff6e5; }
+            .insp-muted { color: #8a8a85; }
+            .insp-photo { max-height: 110px; max-width: 160px; border: 1px solid #dddddd; }
+        </style>
+    </template>
+
+    <!-- ======================= INSPECTION REPORT ======================= -->
+    <template id="report_fleet_inspection_document">
+        <t t-call="web.external_layout">
+            <t t-call="inspection.report_inspection_styles"/>
+            <t t-set="result_labels" t-value="dict(o._fields['result'].selection)"/>
+            <t t-set="sev_labels" t-value="dict(o.line_ids._fields['severity'].selection)"/>
+            <t t-set="res_labels" t-value="dict(o.line_ids._fields['result'].selection)"/>
+            <t t-set="defects" t-value="o.line_ids.filtered(lambda l: l.result == 'defective')"/>
+            <div class="page">
+                <table style="width:100%; margin-bottom: 8px;">
+                    <tr>
+                        <td>
+                            <p class="insp-h">Mechanical Inspection Report</p>
+                            <span class="insp-sub">
+                                <span t-field="o.name"/> - <span t-field="o.inspection_type"/>
+                                (<span t-field="o.check_round"/>) - <span t-field="o.state"/>
+                            </span>
+                        </td>
+                        <td style="text-align:right; vertical-align: middle;">
+                            <span t-if="o.result" t-attf-class="insp-badge insp-#{o.result}"
+                                  t-esc="result_labels.get(o.result)"/>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="insp-table" style="margin-bottom: 8px;">
+                    <tr>
+                        <td><strong>Vehicle:</strong> <span t-field="o.vehicle_id.name"/></td>
+                        <td><strong>Registration No.:</strong> <span t-field="o.registration_number"/></td>
+                        <td><strong>Chassis No.:</strong> <span t-field="o.chassis_number"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date:</strong> <span t-field="o.date"/></td>
+                        <td><strong>Mileage:</strong> <span t-field="o.odometer_reading"/> <span t-field="o.odometer_unit"/></td>
+                        <td><strong>Branch:</strong> <span t-field="o.branch"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Driver:</strong> <span t-field="o.driver_id.name"/></td>
+                        <td><strong>Mechanic:</strong> <span t-field="o.mechanic_id.name"/></td>
+                        <td><strong>Supervisor:</strong> <span t-field="o.supervisor_id.name"/></td>
+                    </tr>
+                </table>
+
+                <table style="width:100%; border-spacing: 6px; border-collapse: separate;">
+                    <tr>
+                        <td class="insp-kpi"><div class="v" t-esc="o.total_items"/><div class="l">Items checked</div></td>
+                        <td class="insp-kpi"><div class="v" style="color:#0b7a0b" t-esc="o.good_count"/><div class="l">Good</div></td>
+                        <td class="insp-kpi"><div class="v" style="color:#d03b3b" t-esc="o.defective_count"/><div class="l">Defective</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="o.high_defect_count"/><div class="l">High severity</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="o.na_count"/><div class="l">N/A</div></td>
+                        <td class="insp-kpi"><div class="v"><t t-esc="'%.0f' % o.health_score"/>%</div><div class="l">Health score</div></td>
+                    </tr>
+                </table>
+
+                <!-- Defects first: what the workshop needs to act on -->
+                <t t-if="defects">
+                    <div class="insp-section">Defects Requiring Attention (<t t-esc="len(defects)"/>)</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Particulars</th>
+                                <th>Severity</th>
+                                <th>Comment</th>
+                                <th>Job Type</th>
+                                <th>Job Card</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="defects.sorted(lambda l: {'high': 0, 'medium': 1}.get(l.severity, 2))" t-as="line">
+                                <tr t-attf-class="insp-row-#{line.severity}">
+                                    <td t-esc="line.category_id.name"/>
+                                    <td>
+                                        <t t-esc="line.item_id.name"/>
+                                        <span t-if="line.is_repeat_defect" class="insp-muted"> (repeat)</span>
+                                    </td>
+                                    <td t-attf-class="insp-sev-#{line.severity}" t-esc="sev_labels.get(line.severity)"/>
+                                    <td t-esc="line.comment or ''"/>
+                                    <td t-esc="line.job_type_id.name or ''"/>
+                                    <td t-esc="line.job_card_id.display_name or '-'"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+
+                <div class="insp-section">Full Checklist</div>
+                <t t-foreach="o.line_ids.category_id" t-as="cat">
+                    <table class="insp-table" style="margin-bottom: 6px; page-break-inside: avoid;">
+                        <thead>
+                            <tr>
+                                <th style="width:45%"><t t-esc="cat.name"/></th>
+                                <th style="width:12%">Result</th>
+                                <th style="width:12%">Severity</th>
+                                <th>Comment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="o.line_ids.filtered(lambda l: l.category_id == cat)" t-as="line">
+                                <tr>
+                                    <td t-esc="line.item_id.name"/>
+                                    <td t-attf-class="insp-res-#{line.result}" t-esc="res_labels.get(line.result)"/>
+                                    <td t-attf-class="insp-sev-#{line.severity}"
+                                        t-esc="sev_labels.get(line.severity) if line.result == 'defective' else ''"/>
+                                    <td t-esc="line.comment or ''"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+
+                <t t-set="tyre_lines" t-value="o.line_ids.filtered(lambda l: l.position_id and (l.lot_id or l.tread_depth or l.pressure))"/>
+                <t t-if="tyre_lines">
+                    <div class="insp-section">Tyre / Part Readings</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr><th>Position</th><th>Serial No.</th><th>Part</th><th>Tread (mm)</th><th>Pressure (psi)</th><th>Result</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="tyre_lines" t-as="line" t-attf-class="#{'insp-row-high' if line.below_min_tread else ''}">
+                                <td><b t-esc="line.position_id.code"/></td>
+                                <td t-esc="line.lot_id.name or '-'"/>
+                                <td t-esc="line.lot_id.product_id.display_name or ''"/>
+                                <td t-esc="line.tread_depth or ''"/>
+                                <td t-esc="line.pressure or ''"/>
+                                <td t-attf-class="insp-res-#{line.result}" t-esc="res_labels.get(line.result)"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <t t-set="photo_lines" t-value="o.line_ids.filtered(lambda l: l.photo)"/>
+                <t t-if="photo_lines">
+                    <div class="insp-section" style="page-break-before: auto;">Photos</div>
+                    <table style="width:100%;">
+                        <t t-foreach="range(0, len(photo_lines), 3)" t-as="row_start">
+                            <tr>
+                                <t t-foreach="photo_lines[row_start:row_start + 3]" t-as="line">
+                                    <td style="width:33%; padding: 4px; vertical-align: top; text-align: center;">
+                                        <img class="insp-photo" t-att-src="image_data_uri(line.photo)"/>
+                                        <div style="font-size: 10px;">
+                                            <t t-esc="line.category_id.name"/> / <t t-esc="line.item_id.name"/>
+                                        </div>
+                                    </td>
+                                </t>
+                            </tr>
+                        </t>
+                    </table>
+                </t>
+
+                <t t-if="o.service_ids">
+                    <div class="insp-section">Job Cards</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr><th>Job Card</th><th>Job Type</th><th>Defects</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="o.service_ids" t-as="svc">
+                                <td t-esc="svc.display_name"/>
+                                <td t-esc="svc.inspection_job_type_id.name or ''"/>
+                                <td t-esc="len(svc.inspection_line_ids)"/>
+                                <td><span t-field="svc.state"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <p t-if="o.remarks" style="margin-top: 10px;"><strong>General Remarks:</strong><br/>
+                    <span t-field="o.remarks"/>
+                </p>
+
+                <table style="width:100%; margin-top: 30px; page-break-inside: avoid;">
+                    <tr>
+                        <td style="width:33%; text-align:center;">
+                            <img t-if="o.driver_signature" t-att-src="image_data_uri(o.driver_signature)" style="max-height:60px;"/>
+                            <br/>________________________<br/>
+                            Driver: <span t-field="o.driver_id.name"/>
+                            <div class="insp-sub" t-if="o.driver_signature_date"><span t-field="o.driver_signature_date"/></div>
+                        </td>
+                        <td style="width:33%; text-align:center;">
+                            <img t-if="o.mechanic_signature" t-att-src="image_data_uri(o.mechanic_signature)" style="max-height:60px;"/>
+                            <br/>________________________<br/>
+                            Mechanic: <span t-field="o.mechanic_id.name"/>
+                            <div class="insp-sub" t-if="o.mechanic_signature_date"><span t-field="o.mechanic_signature_date"/></div>
+                        </td>
+                        <td style="width:33%; text-align:center;">
+                            <img t-if="o.supervisor_signature" t-att-src="image_data_uri(o.supervisor_signature)" style="max-height:60px;"/>
+                            <br/>________________________<br/>
+                            Supervisor: <span t-field="o.supervisor_id.name"/>
+                            <div class="insp-sub" t-if="o.supervisor_signature_date"><span t-field="o.supervisor_signature_date"/></div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_fleet_inspection">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="inspection.report_fleet_inspection_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ======================= DEFECT REPORT (one inspection, for the workshop) ======================= -->
+    <template id="report_fleet_inspection_defects">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <t t-set="sev_labels" t-value="dict(o.line_ids._fields['severity'].selection)"/>
+                    <t t-set="defects" t-value="o.line_ids.filtered(lambda l: l.result == 'defective')"/>
+                    <div class="page">
+                        <p class="insp-h">Defect Report - <span t-field="o.name"/></p>
+                        <p class="insp-sub">
+                            <span t-field="o.vehicle_id.name"/> (<span t-field="o.registration_number"/>) -
+                            <span t-field="o.date"/> - Mechanic: <span t-field="o.mechanic_id.name"/>
+                        </p>
+                        <p t-if="not defects">No defects were found on this inspection.</p>
+                        <t t-foreach="list(defects.job_type_id) + ([False] if defects.filtered(lambda l: not l.job_type_id) else [])" t-as="jt">
+                            <t t-set="jt_lines" t-value="defects.filtered(lambda l: l.job_type_id == jt) if jt else defects.filtered(lambda l: not l.job_type_id)"/>
+                            <t t-if="jt_lines">
+                                <div class="insp-section"><t t-esc="jt.name if jt else 'Unassigned'"/> (<t t-esc="len(jt_lines)"/>)</div>
+                                <table class="insp-table">
+                                    <thead>
+                                        <tr><th>Category</th><th>Particulars</th><th>Severity</th><th>Comment</th><th>Job Card</th><th style="width:15%">Done (sign)</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="jt_lines" t-as="line" t-attf-class="insp-row-#{line.severity}">
+                                            <td t-esc="line.category_id.name"/>
+                                            <td t-esc="line.item_id.name"/>
+                                            <td t-attf-class="insp-sev-#{line.severity}" t-esc="sev_labels.get(line.severity)"/>
+                                            <td t-esc="line.comment or ''"/>
+                                            <td t-esc="line.job_card_id.display_name or '-'"/>
+                                            <td/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- ======================= DEFECT LIST (selected defect lines) ======================= -->
+    <template id="report_inspection_defect_lines">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-call="inspection.report_inspection_styles"/>
+                <t t-set="sev_labels" t-value="dict(docs._fields['severity'].selection)"/>
+                <div class="page">
+                    <p class="insp-h">Defect List</p>
+                    <p class="insp-sub"><t t-esc="len(docs)"/> defect line(s)</p>
+                    <t t-foreach="docs.vehicle_id" t-as="vehicle">
+                        <t t-set="v_lines" t-value="docs.filtered(lambda l: l.vehicle_id == vehicle).sorted(lambda l: (l.inspection_date, l.id), reverse=True)"/>
+                        <div class="insp-section">
+                            <t t-esc="vehicle.display_name"/> - <t t-esc="len(v_lines)"/> defect(s)
+                        </div>
+                        <table class="insp-table">
+                            <thead>
+                                <tr><th>Date</th><th>Inspection</th><th>Category</th><th>Particulars</th><th>Severity</th><th>Comment</th><th>Job Card</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="v_lines" t-as="line" t-attf-class="insp-row-#{line.severity}">
+                                    <td><span t-field="line.inspection_date"/></td>
+                                    <td t-esc="line.inspection_id.name"/>
+                                    <td t-esc="line.category_id.name"/>
+                                    <td>
+                                        <t t-esc="line.item_id.name"/>
+                                        <span t-if="line.is_repeat_defect" class="insp-muted"> (repeat)</span>
+                                    </td>
+                                    <td t-attf-class="insp-sev-#{line.severity}"
+                                        t-esc="sev_labels.get(line.severity) if line.result == 'defective' else ''"/>
+                                    <td t-esc="line.comment or ''"/>
+                                    <td t-esc="line.job_card_id.display_name or '-'"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- ======================= FLEET SUMMARY ======================= -->
+    <template id="report_inspection_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <div class="page">
+                        <p class="insp-h">Fleet Inspection Summary</p>
+                        <p class="insp-sub">
+                            <span t-field="o.date_from"/> to <span t-field="o.date_to"/>
+                            <t t-if="o.vehicle_ids"> - <t t-esc="len(o.vehicle_ids)"/> selected vehicle(s)</t>
+                            <t t-if="o.inspection_type"> - <span t-field="o.inspection_type"/></t>
+                            <t t-if="not o.include_unapproved"> - approved inspections only</t>
+                        </p>
+
+                        <table style="width:100%; border-spacing: 6px; border-collapse: separate;">
+                            <tr>
+                                <td class="insp-kpi"><div class="v" t-esc="total"/><div class="l">Inspections</div></td>
+                                <td class="insp-kpi"><div class="v"><t t-esc="'%.0f' % pass_rate"/>%</div><div class="l">Clean pass rate</div></td>
+                                <td class="insp-kpi"><div class="v" style="color:#0b7a0b" t-esc="result_count['pass']"/><div class="l">Pass</div></td>
+                                <td class="insp-kpi"><div class="v" style="color:#b36b00" t-esc="result_count['pass_defects']"/><div class="l">Pass w/ defects</div></td>
+                                <td class="insp-kpi"><div class="v" style="color:#d03b3b" t-esc="result_count['fail']"/><div class="l">Fail</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="defect_total"/><div class="l">Defects</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="high_total"/><div class="l">High severity</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="repeat_total"/><div class="l">Repeat</div></td>
+                            </tr>
+                        </table>
+
+                        <p t-if="not total" class="insp-muted">No inspections match the selected criteria.</p>
+
+                        <t t-if="vehicles">
+                            <div class="insp-section">Results by Vehicle</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Vehicle</th><th>Plate</th><th>Inspections</th><th>Pass</th><th>Pass w/ defects</th>
+                                        <th>Fail</th><th>Defects</th><th>High</th><th>Avg health</th><th>Last inspection</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="vehicles" t-as="v">
+                                        <td t-esc="v['vehicle'].display_name"/>
+                                        <td t-esc="v['vehicle'].license_plate or ''"/>
+                                        <td t-esc="v['count']"/>
+                                        <td t-esc="v['pass']"/>
+                                        <td t-esc="v['pass_defects']"/>
+                                        <td t-att-class="'insp-sev-high' if v['fail'] else ''" t-esc="v['fail']"/>
+                                        <td t-esc="v['defects']"/>
+                                        <td t-esc="v['high']"/>
+                                        <td><t t-esc="'%.0f' % v['avg_health']"/>%</td>
+                                        <td>
+                                            <t t-if="v['last']">
+                                                <span t-field="v['last'].date"/>
+                                                (<span t-field="v['last'].result"/>)
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <table t-if="defect_total" style="width:100%; margin-top: 6px;">
+                            <tr>
+                                <td style="width:50%; vertical-align: top; padding-right: 6px;">
+                                    <div class="insp-section">Top Defect Categories</div>
+                                    <table class="insp-table">
+                                        <tr t-foreach="top_categories" t-as="row">
+                                            <td t-esc="row[0].display_name or 'Undefined'"/>
+                                            <td style="text-align:right" t-esc="row[1]"/>
+                                        </tr>
+                                    </table>
+                                    <div class="insp-section">Defects by Job Type</div>
+                                    <table class="insp-table">
+                                        <tr t-foreach="by_job_type" t-as="row">
+                                            <td t-esc="row[0].display_name or 'Unassigned'"/>
+                                            <td style="text-align:right" t-esc="row[1]"/>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="width:50%; vertical-align: top; padding-left: 6px;">
+                                    <div class="insp-section">Most Frequent Defective Items</div>
+                                    <table class="insp-table">
+                                        <tr t-foreach="top_items" t-as="row">
+                                            <td>
+                                                <t t-esc="row[0].name"/>
+                                                <span class="insp-muted"> - <t t-esc="row[0].category_id.name"/></span>
+                                            </td>
+                                            <td style="text-align:right" t-esc="row[1]"/>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <t t-if="mechanics">
+                            <div class="insp-section">Mechanic Activity</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr><th>Mechanic</th><th>Inspections</th><th>Defects reported</th><th>Avg duration (hrs)</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="mechanics" t-as="m">
+                                        <td t-esc="m['mechanic'].display_name"/>
+                                        <td t-esc="m['count']"/>
+                                        <td t-esc="m['defects']"/>
+                                        <td t-esc="'%.2f' % m['avg_duration']"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <t t-if="open_high_defects">
+                            <div class="insp-section">Open High-Severity Defects</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr><th>Vehicle</th><th>Date</th><th>Inspection</th><th>Category</th><th>Particulars</th><th>Comment</th><th>Job Card</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="open_high_defects" t-as="line" class="insp-row-high">
+                                        <td t-esc="line.vehicle_id.display_name"/>
+                                        <td><span t-field="line.inspection_date"/></td>
+                                        <td t-esc="line.inspection_id.name"/>
+                                        <td t-esc="line.category_id.name"/>
+                                        <td t-esc="line.item_id.name"/>
+                                        <td t-esc="line.comment or ''"/>
+                                        <td t-esc="line.job_card_id.display_name or 'None'"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

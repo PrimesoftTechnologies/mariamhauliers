@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_part_fitment_wizard_form" model="ir.ui.view">
+        <field name="name">fleet.part.fitment.wizard.form</field>
+        <field name="model">fleet.part.fitment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Record Fitment">
+                <group>
+                    <group>
+                        <field name="job_id" readonly="1" force_save="1"/>
+                        <field name="vehicle_id"/>
+                    </group>
+                    <group>
+                        <field name="date"/>
+                        <field name="mileage"/>
+                        <field name="installed_by" options="{'no_create': True}"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    The part currently fitted at the chosen position is removed automatically and routed as
+                    selected (scrap, retreading, back to stock). A serial already fitted elsewhere on this
+                    vehicle is moved (rotation).
+                </p>
+                <field name="line_ids">
+                    <list editable="bottom">
+                        <field name="product_id" options="{'no_create': True}"/>
+                        <field name="lot_id" options="{'no_create': True}"/>
+                        <field name="position_id" options="{'no_create': True}"/>
+                        <field name="tread_depth"/>
+                        <field name="replaced_part_id" readonly="1"/>
+                        <field name="removal_reason" invisible="not replaced_part_id"/>
+                        <field name="removal_destination" invisible="not replaced_part_id"/>
+                        <field name="removed_tread_depth" invisible="not replaced_part_id" optional="show"/>
+                        <field name="cost" column_invisible="1"/>
+                        <field name="mr_line_id" column_invisible="1"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm Fitment" class="btn-primary"/>
+                    <button string="Discard" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fleet_part_removal_wizard_form" model="ir.ui.view">
+        <field name="name">fleet.part.removal.wizard.form</field>
+        <field name="model">fleet.part.removal.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Remove Part">
+                <group>
+                    <group>
+                        <field name="part_ids" widget="many2many_tags" readonly="1" force_save="1"/>
+                        <field name="vehicle_id" invisible="1"/>
+                        <field name="job_id" options="{'no_create': True}"/>
+                        <field name="date"/>
+                        <field name="mileage"/>
+                    </group>
+                    <group>
+                        <field name="reason"/>
+                        <field name="destination"/>
+                        <field name="tread_depth"/>
+                        <field name="removed_by" options="{'no_create': True}"/>
+                        <field name="notes"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Remove" class="btn-primary"/>
+                    <button string="Discard" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fleet_part_removal_wizard" model="ir.actions.act_window">
+        <field name="name">Remove Parts</field>
+        <field name="res_model">fleet.part.removal.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_fleet_vehicle_installed_part"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

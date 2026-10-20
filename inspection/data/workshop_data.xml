@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Parts issued to a job card leave the warehouse to this virtual location
+         (they are consumed by the vehicle). Unused parts and removed serialised
+         parts (tyres kept as spares, retreads) come back from it. -->
+    <record id="stock_location_fleet_consumption" model="stock.location">
+        <field name="name">Fleet Maintenance Consumption</field>
+        <field name="location_id" ref="stock.stock_location_locations_virtual"/>
+        <field name="usage">inventory</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Safety net next to the receipt hook: re-reserve waiting material requests. -->
+    <record id="ir_cron_material_request_availability" model="ir.cron">
+        <field name="name">Fleet Workshop: check material availability</field>
+        <field name="model_id" ref="model_fleet_job_material_request"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_availability()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="user_id" ref="base.user_root"/>
+    </record>
+
+    <record id="config_job_manager_approval_amount" model="ir.config_parameter">
+        <field name="key">inspection.job_manager_approval_amount</field>
+        <field name="value">0</field>
+    </record>
+    <record id="config_mr_purchase_mode" model="ir.config_parameter">
+        <field name="key">inspection.mr_purchase_mode</field>
+        <field name="value">auto</field>
+    </record>
+    <record id="config_tyre_wear_warning" model="ir.config_parameter">
+        <field name="key">inspection.tyre_wear_warning_pct</field>
+        <field name="value">90</field>
+    </record>
+</odoo>

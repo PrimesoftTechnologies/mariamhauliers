@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_job_material_request_form" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.form</field>
+        <field name="model">fleet.job.material.request</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" type="object" string="Submit"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve &amp; Check Stock"
+                            class="btn-primary" invisible="state != 'submitted'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'submitted'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="action_issue" type="object" string="Issue Materials"
+                            class="btn-primary" invisible="state not in ('ready', 'waiting_stock') or availability not in ('full', 'partial')"
+                            groups="inspection.group_workshop_storekeeper,inspection.group_inspection_manager"/>
+                    <button name="action_check_availability" type="object" string="Check Availability"
+                            invisible="state not in ('approved', 'waiting_stock')"/>
+                    <button name="action_create_purchase" type="object" string="Create RFQ"
+                            invisible="state not in ('approved', 'waiting_stock', 'ready') or not has_shortage"
+                            groups="inspection.group_workshop_procurement,inspection.group_inspection_manager"/>
+                    <button name="action_done" type="object" string="Record Usage &amp; Close"
+                            class="btn-primary" invisible="state != 'issued'"
+                            confirm="Parts issued but not used (issued - used) will be returned to stock. Continue?"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('issued', 'done', 'cancel', 'rejected')"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('rejected', 'cancel')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,waiting_stock,ready,issued,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_pickings" type="object" class="oe_stat_button"
+                                icon="fa-truck" invisible="picking_count == 0"
+                                groups="stock.group_stock_user">
+                            <field name="picking_count" widget="statinfo" string="Transfers"/>
+                        </button>
+                        <button name="action_view_purchases" type="object" class="oe_stat_button"
+                                icon="fa-shopping-cart" invisible="purchase_count == 0"
+                                groups="purchase.group_purchase_user">
+                            <field name="purchase_count" widget="statinfo" string="Purchases"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="To Purchase" bg_color="text-bg-warning" invisible="not has_shortage"/>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-info py-2" role="status" invisible="state not in ('waiting_stock', 'ready')">
+                        <i class="fa fa-cubes me-1" title="Stock"/>
+                        Stock check done: available quantities are reserved on the issue transfer
+                        (<field name="availability" class="d-inline fw-bold"/>).
+                        <span invisible="not has_shortage">The shortage must be purchased: it is reserved
+                            automatically when the parts are received.</span>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="job_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="vehicle_id" readonly="1"/>
+                            <field name="workshop_id" readonly="1"/>
+                            <field name="reason"/>
+                        </group>
+                        <group>
+                            <field name="requested_by" readonly="state != 'draft'"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="date_required"/>
+                            <field name="approved_by_id" invisible="not approved_by_id"/>
+                            <field name="location_id" groups="stock.group_stock_multi_locations"
+                                   readonly="state not in ('draft', 'submitted')" options="{'no_create': True}"/>
+                            <field name="location_dest_id" groups="stock.group_stock_multi_locations"
+                                   readonly="state not in ('draft', 'submitted')" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Materials" name="lines">
+                            <field name="line_ids" readonly="state in ('done', 'cancel', 'rejected')">
+                                <list editable="bottom" decoration-warning="shortage_qty &gt; 0 and request_state in ('draft', 'submitted')"
+                                      decoration-danger="open_purchase_qty &gt; 0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id" readonly="request_state not in ('draft', 'submitted')"
+                                           options="{'no_create': True}"/>
+                                    <field name="description" optional="hide"/>
+                                    <field name="supply_method" readonly="request_state not in ('draft', 'submitted')"
+                                           optional="show"/>
+                                    <field name="required_qty" readonly="request_state != 'draft'"/>
+                                    <field name="approved_qty" readonly="request_state != 'submitted'"/>
+                                    <field name="product_uom_id" optional="show" groups="uom.group_uom"/>
+                                    <field name="free_qty" optional="show"
+                                           column_invisible="parent.state not in ('draft', 'submitted')"/>
+                                    <field name="shortage_qty" optional="show"
+                                           column_invisible="parent.state not in ('draft', 'submitted')"/>
+                                    <field name="qty_from_stock" optional="show"
+                                           column_invisible="parent.state in ('draft', 'submitted')"/>
+                                    <field name="qty_to_purchase" optional="show"
+                                           column_invisible="parent.state in ('draft', 'submitted')"/>
+                                    <field name="purchased_qty" optional="hide"
+                                           column_invisible="parent.state in ('draft', 'submitted')"/>
+                                    <field name="received_qty" optional="show"
+                                           column_invisible="parent.state in ('draft', 'submitted')"/>
+                                    <field name="reserved_qty" optional="show"
+                                           column_invisible="parent.state not in ('approved', 'waiting_stock', 'ready')"/>
+                                    <field name="issued_qty"
+                                           column_invisible="parent.state not in ('waiting_stock', 'ready', 'issued', 'done')"/>
+                                    <field name="issued_lot_ids" widget="many2many_tags" optional="show"
+                                           column_invisible="parent.state not in ('issued', 'done')"/>
+                                    <field name="used_qty" readonly="request_state != 'issued'"
+                                           column_invisible="parent.state not in ('issued', 'done')"/>
+                                    <field name="returned_qty" optional="show"
+                                           column_invisible="parent.state != 'done'"/>
+                                    <field name="unit_cost" groups="inspection.group_workshop_supervisor" optional="show"/>
+                                    <field name="consumed_cost" groups="inspection.group_workshop_supervisor" optional="hide"/>
+                                    <field name="open_purchase_qty" column_invisible="1"/>
+                                    <field name="request_state" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer" groups="inspection.group_workshop_supervisor">
+                                <field name="total_estimated_cost"/>
+                                <field name="total_issued_cost"/>
+                                <field name="total_used_cost" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Approval Log" name="approvals">
+                            <field name="approval_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="stage"/>
+                                    <field name="approver_id"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'rejected'"/>
+                                    <field name="comment"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                    <field name="has_shortage" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_material_request_list" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.list</field>
+        <field name="model">fleet.job.material.request</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="has_shortage" decoration-success="state == 'done'"
+                  decoration-muted="state in ('cancel', 'rejected')" sample="1">
+                <field name="name"/>
+                <field name="job_id"/>
+                <field name="vehicle_id"/>
+                <field name="requested_by"/>
+                <field name="date"/>
+                <field name="date_required" optional="show"/>
+                <field name="total_estimated_cost" sum="Total" groups="inspection.group_workshop_supervisor"/>
+                <field name="has_shortage" string="To Purchase"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('submitted', 'approved')"
+                       decoration-warning="state in ('waiting_stock', 'ready')"
+                       decoration-success="state in ('issued', 'done')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_material_request_search" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.search</field>
+        <field name="model">fleet.job.material.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="job_id"/>
+                <field name="vehicle_id"/>
+                <field name="line_ids" string="Product" filter_domain="[('line_ids.product_id', 'ilike', self)]"/>
+                <filter string="My Requests" name="my" domain="[('requested_by', '=', uid)]"/>
+                <separator/>
+                <filter string="To Approve" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Waiting Stock" name="waiting_stock" domain="[('state', 'in', ('approved', 'waiting_stock'))]"/>
+                <filter string="Ready to Issue" name="ready" domain="[('state', '=', 'ready')]"/>
+                <filter string="Issued (usage to record)" name="issued" domain="[('state', '=', 'issued')]"/>
+                <filter string="Open" name="open" domain="[('state', 'not in', ('done', 'cancel', 'rejected'))]"/>
+                <separator/>
+                <filter string="To Purchase" name="shortage" domain="[('has_shortage', '=', True)]"/>
+                <filter string="Date" name="filter_date" date="date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Job Card" name="group_job" context="{'group_by': 'job_id'}"/>
+                    <filter string="Workshop" name="group_workshop" context="{'group_by': 'workshop_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fleet_job_material_request" model="ir.actions.act_window">
+        <field name="name">Material Requests</field>
+        <field name="res_model">fleet.job.material.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No material request yet</p>
+            <p>Request spare parts from a job card. On approval the stock is checked automatically:
+               what is available is reserved, the shortage is sent to purchase.</p>
+        </field>
+    </record>
+
+    <record id="action_fleet_job_material_request_to_approve" model="ir.actions.act_window">
+        <field name="name">Requests to Approve</field>
+        <field name="res_model">fleet.job.material.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_submitted': 1}</field>
+    </record>
+
+    <record id="action_fleet_job_material_request_to_issue" model="ir.actions.act_window">
+        <field name="name">Materials to Issue</field>
+        <field name="res_model">fleet.job.material.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_ready': 1, 'search_default_waiting_stock': 1}</field>
+    </record>
+
+    <record id="action_fleet_job_material_request_shortage" model="ir.actions.act_window">
+        <field name="name">Shortages to Purchase</field>
+        <field name="res_model">fleet.job.material.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_shortage': 1}</field>
+    </record>
+
+    <record id="action_fleet_workshop_purchase_orders" model="ir.actions.act_window">
+        <field name="name">Workshop Purchases</field>
+        <field name="res_model">purchase.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('workshop_material_request_id', '!=', False)]</field>
+    </record>
+
+    <record id="action_fleet_workshop_transfers" model="ir.actions.act_window">
+        <field name="name">Workshop Transfers</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('fleet_transfer_type', '!=', False)]</field>
+        <field name="context">{'search_default_available': 1, 'create': False}</field>
+    </record>
+
+    <!-- ======================= PARTS CONSUMPTION ANALYSIS ======================= -->
+    <record id="view_fleet_job_material_request_line_list" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.line.list</field>
+        <field name="model">fleet.job.material.request.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="date"/>
+                <field name="request_id"/>
+                <field name="job_id"/>
+                <field name="vehicle_id"/>
+                <field name="product_id"/>
+                <field name="approved_qty" sum="Total"/>
+                <field name="qty_from_stock" optional="show" sum="Total"/>
+                <field name="qty_to_purchase" optional="show" sum="Total"/>
+                <field name="issued_qty" sum="Total"/>
+                <field name="used_qty" sum="Total"/>
+                <field name="returned_qty" optional="show" sum="Total"/>
+                <field name="consumed_cost" sum="Total"/>
+                <field name="request_state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_material_request_line_pivot" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.line.pivot</field>
+        <field name="model">fleet.job.material.request.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Parts Consumption">
+                <field name="product_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="used_qty" type="measure"/>
+                <field name="consumed_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_material_request_line_graph" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.line.graph</field>
+        <field name="model">fleet.job.material.request.line</field>
+        <field name="arch" type="xml">
+            <graph string="Parts Consumption" type="bar">
+                <field name="product_id"/>
+                <field name="consumed_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_material_request_line_search" model="ir.ui.view">
+        <field name="name">fleet.job.material.request.line.search</field>
+        <field name="model">fleet.job.material.request.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="vehicle_id"/>
+                <field name="job_id"/>
+                <field name="request_id"/>
+                <filter string="Consumed" name="consumed" domain="[('request_state', 'in', ('issued', 'done'))]"/>
+                <filter string="To Purchase" name="to_purchase" domain="[('purchase_required', '=', True)]"/>
+                <filter string="Date" name="filter_date" date="date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fleet_parts_consumption" model="ir.actions.act_window">
+        <field name="name">Parts Consumption</field>
+        <field name="res_model">fleet.job.material.request.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_consumed': 1}</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Wheel positions matching the tyre checklist of the inspection sheet.
+         F = steer axle, D1/D2 = drive axles (L/R = left/right, I/O = inner/outer),
+         SEMI/LINK & LINK/DENGLER = trailer wheels. -->
+    <record id="position_fl" model="fleet.vehicle.part.position">
+        <field name="name">Front Left</field><field name="code">FL</field>
+        <field name="sequence">10</field><field name="axle">1</field><field name="side">left</field>
+    </record>
+    <record id="position_fr" model="fleet.vehicle.part.position">
+        <field name="name">Front Right</field><field name="code">FR</field>
+        <field name="sequence">20</field><field name="axle">1</field><field name="side">right</field>
+    </record>
+    <record id="position_d1li" model="fleet.vehicle.part.position">
+        <field name="name">Drive 1 Left Inner</field><field name="code">D1LI</field>
+        <field name="sequence">30</field><field name="axle">2</field><field name="side">left</field>
+    </record>
+    <record id="position_d1lo" model="fleet.vehicle.part.position">
+        <field name="name">Drive 1 Left Outer</field><field name="code">D1LO</field>
+        <field name="sequence">40</field><field name="axle">2</field><field name="side">left</field>
+    </record>
+    <record id="position_d1ri" model="fleet.vehicle.part.position">
+        <field name="name">Drive 1 Right Inner</field><field name="code">D1RI</field>
+        <field name="sequence">50</field><field name="axle">2</field><field name="side">right</field>
+    </record>
+    <record id="position_d1ro" model="fleet.vehicle.part.position">
+        <field name="name">Drive 1 Right Outer</field><field name="code">D1RO</field>
+        <field name="sequence">60</field><field name="axle">2</field><field name="side">right</field>
+    </record>
+    <record id="position_d2li" model="fleet.vehicle.part.position">
+        <field name="name">Drive 2 Left Inner</field><field name="code">D2LI</field>
+        <field name="sequence">70</field><field name="axle">3</field><field name="side">left</field>
+    </record>
+    <record id="position_d2lo" model="fleet.vehicle.part.position">
+        <field name="name">Drive 2 Left Outer</field><field name="code">D2LO</field>
+        <field name="sequence">80</field><field name="axle">3</field><field name="side">left</field>
+    </record>
+    <record id="position_d2ri" model="fleet.vehicle.part.position">
+        <field name="name">Drive 2 Right Inner</field><field name="code">D2RI</field>
+        <field name="sequence">90</field><field name="axle">3</field><field name="side">right</field>
+    </record>
+    <record id="position_d2ro" model="fleet.vehicle.part.position">
+        <field name="name">Drive 2 Right Outer</field><field name="code">D2RO</field>
+        <field name="sequence">100</field><field name="axle">3</field><field name="side">right</field>
+    </record>
+    <record id="position_semi_1" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 1</field><field name="code">SL01</field><field name="sequence">110</field>
+    </record>
+    <record id="position_semi_2" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 2</field><field name="code">SL02</field><field name="sequence">120</field>
+    </record>
+    <record id="position_semi_3" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 3</field><field name="code">SL03</field><field name="sequence">130</field>
+    </record>
+    <record id="position_semi_4" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 4</field><field name="code">SL04</field><field name="sequence">140</field>
+    </record>
+    <record id="position_semi_5" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 5</field><field name="code">SL05</field><field name="sequence">150</field>
+    </record>
+    <record id="position_semi_6" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 6</field><field name="code">SL06</field><field name="sequence">160</field>
+    </record>
+    <record id="position_semi_7" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 7</field><field name="code">SL07</field><field name="sequence">170</field>
+    </record>
+    <record id="position_semi_8" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 8</field><field name="code">SL08</field><field name="sequence">180</field>
+    </record>
+    <record id="position_semi_9" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 9</field><field name="code">SL09</field><field name="sequence">190</field>
+    </record>
+    <record id="position_semi_10" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 10</field><field name="code">SL10</field><field name="sequence">200</field>
+    </record>
+    <record id="position_semi_11" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 11</field><field name="code">SL11</field><field name="sequence">210</field>
+    </record>
+    <record id="position_semi_12" model="fleet.vehicle.part.position">
+        <field name="name">Semi / Link 12</field><field name="code">SL12</field><field name="sequence">220</field>
+    </record>
+    <record id="position_dengler_13" model="fleet.vehicle.part.position">
+        <field name="name">Link / Dengler 13</field><field name="code">LD13</field><field name="sequence">230</field>
+    </record>
+    <record id="position_dengler_14" model="fleet.vehicle.part.position">
+        <field name="name">Link / Dengler 14</field><field name="code">LD14</field><field name="sequence">240</field>
+    </record>
+    <record id="position_dengler_15" model="fleet.vehicle.part.position">
+        <field name="name">Link / Dengler 15</field><field name="code">LD15</field><field name="sequence">250</field>
+    </record>
+    <record id="position_dengler_16" model="fleet.vehicle.part.position">
+        <field name="name">Link / Dengler 16</field><field name="code">LD16</field><field name="sequence">260</field>
+    </record>
+    <record id="position_spare" model="fleet.vehicle.part.position">
+        <field name="name">Spare Wheel</field><field name="code">SPARE</field><field name="sequence">300</field>
+    </record>
+    <record id="position_battery" model="fleet.vehicle.part.position">
+        <field name="name">Battery</field><field name="code">BAT</field>
+        <field name="sequence">400</field><field name="part_type">battery</field>
+    </record>
+</odoo>

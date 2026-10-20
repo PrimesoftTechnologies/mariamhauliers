@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_fleet_inspection" model="ir.actions.report">
+        <field name="name">Inspection Report</field>
+        <field name="model">fleet.inspection</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_fleet_inspection</field>
+        <field name="report_file">inspection.report_fleet_inspection</field>
+        <field name="binding_model_id" ref="model_fleet_inspection"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Inspection - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_fleet_inspection_defects" model="ir.actions.report">
+        <field name="name">Defect Report</field>
+        <field name="model">fleet.inspection</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_fleet_inspection_defects</field>
+        <field name="report_file">inspection.report_fleet_inspection_defects</field>
+        <field name="binding_model_id" ref="model_fleet_inspection"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Defects - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_inspection_defect_lines" model="ir.actions.report">
+        <field name="name">Defect List</field>
+        <field name="model">fleet.inspection.line</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_inspection_defect_lines</field>
+        <field name="report_file">inspection.report_inspection_defect_lines</field>
+        <field name="binding_model_id" ref="model_fleet_inspection_line"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Defect List'</field>
+    </record>
+
+    <record id="action_report_inspection_summary" model="ir.actions.report">
+        <field name="name">Fleet Inspection Summary</field>
+        <field name="model">fleet.inspection.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">inspection.report_inspection_summary</field>
+        <field name="report_file">inspection.report_inspection_summary</field>
+        <field name="print_report_name">'Fleet Inspection Summary'</field>
+    </record>
+
+</odoo>

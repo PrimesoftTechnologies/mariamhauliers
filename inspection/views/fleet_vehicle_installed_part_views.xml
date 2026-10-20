@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_vehicle_installed_part_form" model="ir.ui.view">
+        <field name="name">fleet.vehicle.installed.part.form</field>
+        <field name="model">fleet.vehicle.installed.part</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_remove_part" type="object" string="Remove Part" class="btn-primary"
+                            invisible="status != 'installed' or not id"/>
+                    <field name="status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="part_number" placeholder="Serial number"/></h1>
+                        <field name="name" placeholder="Part name"/>
+                    </div>
+                    <group>
+                        <group string="Part">
+                            <field name="vehicle_id" options="{'no_create': True}" readonly="status == 'removed'"/>
+                            <field name="position_id" options="{'no_create': True}" readonly="status == 'removed'"/>
+                            <field name="position"/>
+                            <field name="product_id" options="{'no_create': True}"/>
+                            <field name="lot_id" options="{'no_create': True}" invisible="not product_id"/>
+                            <field name="part_type"/>
+                            <field name="brand"/>
+                            <field name="size"/>
+                        </group>
+                        <group string="Fitment">
+                            <field name="job_id" options="{'no_create': True}"/>
+                            <field name="install_date"/>
+                            <field name="installed_by"/>
+                            <field name="mileage_at_install"/>
+                            <field name="tread_depth_at_install" invisible="part_type != 'tyre'"/>
+                            <field name="cost" groups="inspection.group_workshop_supervisor"/>
+                            <field name="current_km" string="Km Running" invisible="status != 'installed'"/>
+                        </group>
+                    </group>
+                    <group string="Removal" invisible="status != 'removed'">
+                        <group>
+                            <field name="remove_date"/>
+                            <field name="removed_by"/>
+                            <field name="removal_job_id"/>
+                            <field name="mileage_at_removal"/>
+                            <field name="tread_depth_at_removal" invisible="part_type != 'tyre'"/>
+                        </group>
+                        <group>
+                            <field name="removal_reason"/>
+                            <field name="removal_destination"/>
+                            <field name="removal_notes"/>
+                            <field name="mileage_covered"/>
+                            <field name="cost_per_km" groups="inspection.group_workshop_supervisor"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fleet_vehicle_installed_part_list" model="ir.ui.view">
+        <field name="name">fleet.vehicle.installed.part.list</field>
+        <field name="model">fleet.vehicle.installed.part</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="status == 'removed'" sample="1">
+                <field name="vehicle_id"/>
+                <field name="position_id"/>
+                <field name="product_id"/>
+                <field name="part_number"/>
+                <field name="part_type" optional="hide"/>
+                <field name="install_date"/>
+                <field name="mileage_at_install" optional="show"/>
+                <field name="current_km" optional="show"/>
+                <field name="remove_date" optional="show"/>
+                <field name="removal_reason" optional="show"/>
+                <field name="mileage_covered" optional="hide" sum="Total"/>
+                <field name="cost" optional="hide" sum="Total" groups="inspection.group_workshop_supervisor"/>
+                <field name="cost_per_km" optional="hide" groups="inspection.group_workshop_supervisor"/>
+                <field name="status" widget="badge" decoration-success="status == 'installed'"/>
+                <button name="action_remove_part" type="object" icon="fa-sign-out" title="Remove"
+                        invisible="status != 'installed'" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fleet_vehicle_installed_part_search" model="ir.ui.view">
+        <field name="name">fleet.vehicle.installed.part.search</field>
+        <field name="model">fleet.vehicle.installed.part</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="part_number" string="Serial No."/>
+                <field name="vehicle_id"/>
+                <field name="product_id"/>
+                <field name="lot_id"/>
+                <field name="position_id"/>
+                <field name="job_id"/>
+                <filter string="Fitted" name="installed" domain="[('status', '=', 'installed')]"/>
+                <filter string="Removed" name="removed" domain="[('status', '=', 'removed')]"/>
+                <separator/>
+                <filter string="Tyres" name="tyres" domain="[('part_type', '=', 'tyre')]"/>
+                <filter string="Batteries" name="batteries" domain="[('part_type', '=', 'battery')]"/>
+                <separator/>
+                <filter string="Fitment Date" name="filter_install" date="install_date"/>
+                <filter string="Removal Date" name="filter_remove" date="remove_date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Position" name="group_position" context="{'group_by': 'position_id'}"/>
+                    <filter string="Part" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Removal Reason" name="group_reason" context="{'group_by': 'removal_reason'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_fleet_vehicle_installed_part_pivot" model="ir.ui.view">
+        <field name="name">fleet.vehicle.installed.part.pivot</field>
+        <field name="model">fleet.vehicle.installed.part</field>
+        <field name="arch" type="xml">
+            <pivot string="Part Life Analysis">
+                <field name="product_id" type="row"/>
+                <field name="removal_reason" type="col"/>
+                <field name="mileage_covered" type="measure"/>
+                <field name="cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_fleet_vehicle_installed_part_graph" model="ir.ui.view">
+        <field name="name">fleet.vehicle.installed.part.graph</field>
+        <field name="model">fleet.vehicle.installed.part</field>
+        <field name="arch" type="xml">
+            <graph string="Removals by Reason" type="bar">
+                <field name="removal_reason"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_fleet_vehicle_installed_part" model="ir.actions.act_window">
+        <field name="name">Fitted Parts</field>
+        <field name="res_model">fleet.vehicle.installed.part</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="context">{'search_default_installed': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No parts tracked yet</p>
+            <p>Tyres, batteries and other serialised parts fitted on your vehicles, with their position,
+               km covered and removal history. Fitments are recorded from the job card.</p>
+        </field>
+    </record>
+
+    <record id="action_fleet_part_life_analysis" model="ir.actions.act_window">
+        <field name="name">Tyre Life Analysis</field>
+        <field name="res_model">fleet.vehicle.installed.part</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="context">{'search_default_removed': 1, 'search_default_tyres': 1}</field>
+    </record>
+
+</odoo>

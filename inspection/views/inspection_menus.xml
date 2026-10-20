@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_fleet_inspection_root" name="Fleet Inspection"
+              sequence="12" web_icon="inspection,static/description/icon.png"
+              action="action_inspection_dashboard"
+              groups="inspection.group_inspection_inspector"/>
+
+    <menuitem id="menu_fleet_inspection_dashboard" name="Dashboard"
+              parent="menu_fleet_inspection_root" action="action_inspection_dashboard" sequence="5"/>
+
+    <!-- ======================= INSPECTIONS ======================= -->
+    <menuitem id="menu_fleet_inspection_main" name="Inspections"
+              parent="menu_fleet_inspection_root" sequence="10"/>
+
+    <menuitem id="menu_fleet_inspection_new" name="All Inspections"
+              parent="menu_fleet_inspection_main" action="action_fleet_inspection" sequence="10"/>
+
+    <menuitem id="menu_fleet_inspection_to_approve" name="To Approve"
+              parent="menu_fleet_inspection_main" action="action_fleet_inspection_to_approve" sequence="20"
+              groups="inspection.group_inspection_manager"/>
+
+    <menuitem id="menu_fleet_inspection_awaiting_job" name="Awaiting Job Cards"
+              parent="menu_fleet_inspection_main" action="action_fleet_inspection_awaiting_job" sequence="30"/>
+
+    <menuitem id="menu_fleet_inspection_open_defects" name="Defects without Job Card"
+              parent="menu_fleet_inspection_main" action="action_fleet_inspection_open_defects" sequence="40"/>
+
+    <!-- ======================= WORKSHOP ======================= -->
+    <menuitem id="menu_fleet_workshop_jobs" name="Workshop"
+              parent="menu_fleet_inspection_root" sequence="15"/>
+
+    <menuitem id="menu_fleet_workshop_my_jobs" name="My Job Cards"
+              parent="menu_fleet_workshop_jobs" action="action_fleet_job_card_my" sequence="5"/>
+
+    <menuitem id="menu_fleet_workshop_jobs_new" name="Job Cards"
+              parent="menu_fleet_workshop_jobs" action="action_fleet_job_card" sequence="10"/>
+
+    <menuitem id="menu_fleet_workshop_jobs_to_approve" name="Job Cards to Approve"
+              parent="menu_fleet_workshop_jobs" action="action_fleet_job_card_to_approve" sequence="15"
+              groups="inspection.group_workshop_supervisor"/>
+
+    <menuitem id="menu_fleet_workshop_materials" name="Material Requests"
+              parent="menu_fleet_workshop_jobs" action="action_fleet_job_material_request" sequence="20"/>
+
+    <menuitem id="menu_fleet_workshop_materials_to_approve" name="Requests to Approve"
+              parent="menu_fleet_workshop_jobs" action="action_fleet_job_material_request_to_approve" sequence="25"
+              groups="inspection.group_workshop_supervisor"/>
+
+    <!-- ======================= STORES & PURCHASING ======================= -->
+    <menuitem id="menu_fleet_workshop_stores" name="Stores"
+              parent="menu_fleet_inspection_root" sequence="17"
+              groups="inspection.group_workshop_storekeeper,inspection.group_workshop_procurement,inspection.group_inspection_manager"/>
+
+    <menuitem id="menu_fleet_workshop_to_issue" name="Materials to Issue"
+              parent="menu_fleet_workshop_stores" action="action_fleet_job_material_request_to_issue" sequence="10"
+              groups="inspection.group_workshop_storekeeper,inspection.group_inspection_manager"/>
+
+    <menuitem id="menu_fleet_workshop_transfers" name="Workshop Transfers"
+              parent="menu_fleet_workshop_stores" action="action_fleet_workshop_transfers" sequence="20"
+              groups="stock.group_stock_user"/>
+
+    <menuitem id="menu_fleet_workshop_shortages" name="Shortages to Purchase"
+              parent="menu_fleet_workshop_stores" action="action_fleet_job_material_request_shortage" sequence="30"
+              groups="inspection.group_workshop_procurement,inspection.group_inspection_manager"/>
+
+    <menuitem id="menu_fleet_workshop_purchases" name="Workshop Purchases"
+              parent="menu_fleet_workshop_stores" action="action_fleet_workshop_purchase_orders" sequence="40"
+              groups="purchase.group_purchase_user"/>
+
+    <!-- ======================= TYRES & PARTS ======================= -->
+    <menuitem id="menu_fleet_workshop_tyres" name="Tyres &amp; Parts"
+              parent="menu_fleet_inspection_root" sequence="18"/>
+
+    <menuitem id="menu_fleet_tyre_register" name="Tyre &amp; Part Register"
+              parent="menu_fleet_workshop_tyres" action="action_fleet_tyre_register" sequence="10"/>
+
+    <menuitem id="menu_fleet_workshop_installed_parts" name="Fitted Parts"
+              parent="menu_fleet_workshop_tyres" action="action_fleet_vehicle_installed_part" sequence="20"/>
+
+    <!-- ======================= REPORTING ======================= -->
+    <menuitem id="menu_fleet_inspection_reporting" name="Reporting"
+              parent="menu_fleet_inspection_root" groups="inspection.group_workshop_supervisor" sequence="20"/>
+
+    <menuitem id="menu_fleet_inspection_analysis" name="Inspection Analysis"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_inspection_analysis" sequence="10"/>
+
+    <menuitem id="menu_fleet_inspection_defects" name="Defect Analysis"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_inspection_defects" sequence="20"/>
+
+    <menuitem id="menu_fleet_inspection_summary_report" name="Fleet Inspection Summary (PDF)"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_inspection_report_wizard" sequence="25"/>
+
+    <menuitem id="menu_fleet_workshop_reporting_cost" name="Workshop Cost Analysis"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_job_card_analysis" sequence="30"/>
+
+    <menuitem id="menu_fleet_workshop_reporting_labour" name="Technician Performance"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_job_labour_line" sequence="35"/>
+
+    <menuitem id="menu_fleet_workshop_reporting_parts" name="Parts Consumption"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_parts_consumption" sequence="40"/>
+
+    <menuitem id="menu_fleet_workshop_reporting_tyre_life" name="Tyre Life Analysis"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_part_life_analysis" sequence="45"/>
+
+    <menuitem id="menu_fleet_workshop_summary_report" name="Workshop Summary (PDF)"
+              parent="menu_fleet_inspection_reporting" action="action_fleet_workshop_report_wizard" sequence="50"/>
+
+    <!-- ======================= CONFIGURATION ======================= -->
+    <menuitem id="menu_fleet_inspection_config" name="Configuration"
+              parent="menu_fleet_inspection_root" sequence="30"
+              groups="inspection.group_inspection_admin"/>
+
+    <menuitem id="menu_fleet_inspection_config_settings" name="Settings"
+              parent="menu_fleet_inspection_config" action="action_inspection_config_settings" sequence="1"/>
+
+    <menuitem id="menu_fleet_inspection_config_categories" name="Categories"
+              parent="menu_fleet_inspection_config" action="action_fleet_inspection_category" sequence="10"/>
+
+    <menuitem id="menu_fleet_inspection_config_items" name="Checklist Items"
+              parent="menu_fleet_inspection_config" action="action_fleet_inspection_item" sequence="20"/>
+
+    <menuitem id="menu_fleet_inspection_config_job_types" name="Job Types"
+              parent="menu_fleet_inspection_config" action="action_fleet_inspection_job_type" sequence="30"/>
+
+    <menuitem id="menu_fleet_workshop_config" name="Workshops"
+              parent="menu_fleet_inspection_config" action="action_fleet_workshop" sequence="40"/>
+
+    <menuitem id="menu_fleet_part_position_config" name="Part Positions"
+              parent="menu_fleet_inspection_config" action="action_fleet_vehicle_part_position" sequence="50"/>
+
+</odoo>

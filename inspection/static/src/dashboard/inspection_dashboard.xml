@@ -1,0 +1,705 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="inspection.KpiTile">
+        <button type="button" class="o_insp_tile" t-att-class="tone ? 'o_insp_tile_' + tone : ''"
+                t-on-click="() => this.onKpiClick(key)">
+            <span class="o_insp_tile_label">
+                <i t-if="icon" t-attf-class="fa {{icon}} me-1" aria-hidden="true"/>
+                <t t-out="label"/>
+            </span>
+            <span class="o_insp_tile_value"><t t-esc="value"/><small t-if="unit" t-esc="unit"/></span>
+            <span class="o_insp_tile_foot" t-if="foot or deltaInfo">
+                <span t-if="deltaInfo" class="o_insp_delta" t-att-class="'o_insp_delta_' + deltaInfo.direction + (invertDelta ? ' o_insp_delta_inverted' : '')">
+                    <i t-attf-class="fa {{ deltaInfo.direction === 'up' ? 'fa-arrow-up' : deltaInfo.direction === 'down' ? 'fa-arrow-down' : 'fa-minus' }}" aria-hidden="true"/>
+                    <t t-esc="deltaInfo.value"/>
+                </span>
+                <span t-if="foot" class="text-muted" t-out="foot"/>
+            </span>
+        </button>
+    </t>
+
+    <t t-name="inspection.Dashboard">
+        <div class="o_action o_inspection_dashboard" t-ref="root">
+            <div class="o_insp_container">
+                <!-- Header -->
+                <div class="o_insp_header">
+                    <div>
+                        <h2 class="o_insp_title">Fleet Maintenance Dashboard</h2>
+                        <div class="o_insp_subtitle" t-if="current and current.period">
+                            <t t-esc="formatDate(current.period.date_from)"/> -
+                            <t t-esc="formatDate(current.period.date_to)"/>
+                            <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin ms-2" aria-label="Loading"/>
+                        </div>
+                    </div>
+                    <div class="o_insp_tabs btn-group" role="tablist" aria-label="Dashboard section">
+                        <t t-foreach="tabs" t-as="tab" t-key="tab.key">
+                            <button type="button" role="tab" class="btn btn-sm"
+                                    t-att-aria-selected="state.tab === tab.key ? 'true' : 'false'"
+                                    t-att-class="state.tab === tab.key ? 'btn-primary' : 'btn-outline-secondary'"
+                                    t-on-click="() => this.setTab(tab.key)">
+                                <i t-attf-class="fa {{tab.icon}} me-1" aria-hidden="true"/><t t-esc="tab.label"/>
+                            </button>
+                        </t>
+                    </div>
+                    <div class="o_insp_controls">
+                        <div class="btn-group" role="group" aria-label="Period">
+                            <t t-foreach="periods" t-as="p" t-key="p.days">
+                                <button type="button" class="btn btn-sm"
+                                        t-att-class="state.days === p.days ? 'btn-primary' : 'btn-outline-secondary'"
+                                        t-on-click="() => this.setPeriod(p.days)" t-esc="p.label"/>
+                            </t>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" t-on-click="refresh"
+                                title="Refresh" aria-label="Refresh">
+                            <i class="fa fa-refresh" aria-hidden="true"/>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" t-on-click="openSummaryReport">
+                            <i class="fa fa-file-pdf-o me-1" aria-hidden="true"/>Summary Report
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" t-on-click="() => this.newInspection()">
+                            <i class="fa fa-plus me-1" aria-hidden="true"/>New Inspection
+                        </button>
+                    </div>
+                </div>
+
+                <t t-if="state.tab === 'inspection'">
+                <t t-if="state.data">
+                    <t t-set="k" t-value="kpi"/>
+
+                    <!-- Performance KPIs -->
+                    <div class="o_insp_tiles">
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'total'"/>
+                            <t t-set="label">Inspections</t>
+                            <t t-set="icon" t-value="'fa-clipboard'"/>
+                            <t t-set="value" t-value="k.total"/>
+                            <t t-set="deltaInfo" t-value="delta(k.total, k.total_prev)"/>
+                            <t t-set="foot">vs previous period</t>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'pass'"/>
+                            <t t-set="label">Clean pass rate</t>
+                            <t t-set="icon" t-value="'fa-check-circle'"/>
+                            <t t-set="value" t-value="k.pass_rate"/>
+                            <t t-set="unit" t-value="'%'"/>
+                            <t t-set="deltaInfo" t-value="delta(k.pass_rate, k.pass_rate_prev, ' pts')"/>
+                            <t t-set="foot" t-value="''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'fail'"/>
+                            <t t-set="label">Failed</t>
+                            <t t-set="icon" t-value="'fa-times-circle'"/>
+                            <t t-set="value" t-value="k.fail"/>
+                            <t t-set="unit" t-value="''"/>
+                            <t t-set="deltaInfo" t-value="null"/>
+                            <t t-set="foot"><t t-esc="k.pass_defects"/> passed with defects</t>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'total'"/>
+                            <t t-set="label">Fleet coverage</t>
+                            <t t-set="icon" t-value="'fa-truck'"/>
+                            <t t-set="value" t-value="k.coverage"/>
+                            <t t-set="unit" t-value="'%'"/>
+                            <t t-set="foot"><t t-esc="k.inspected_vehicles"/> of <t t-esc="k.active_vehicles"/> vehicles inspected</t>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'total'"/>
+                            <t t-set="label">Avg health score</t>
+                            <t t-set="icon" t-value="'fa-heartbeat'"/>
+                            <t t-set="value" t-value="k.avg_health"/>
+                            <t t-set="unit" t-value="'%'"/>
+                            <t t-set="foot">items in good condition</t>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'total'"/>
+                            <t t-set="label">Avg duration</t>
+                            <t t-set="icon" t-value="'fa-clock-o'"/>
+                            <t t-set="value" t-value="Math.round(k.avg_duration * 60)"/>
+                            <t t-set="unit" t-value="' min'"/>
+                            <t t-set="foot">start to completion</t>
+                        </t>
+                    </div>
+
+                    <!-- Action needed -->
+                    <h3 class="o_insp_section_title">Needs attention</h3>
+                    <div class="o_insp_tiles o_insp_tiles_compact">
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'to_approve'"/>
+                            <t t-set="label">To approve</t>
+                            <t t-set="icon" t-value="'fa-gavel'"/>
+                            <t t-set="value" t-value="k.to_approve"/>
+                            <t t-set="unit" t-value="''"/>
+                            <t t-set="deltaInfo" t-value="null"/>
+                            <t t-set="foot" t-value="''"/>
+                            <t t-set="tone" t-value="k.to_approve ? 'warning' : ''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'in_progress'"/>
+                            <t t-set="label">Draft / in progress</t>
+                            <t t-set="icon" t-value="'fa-pencil'"/>
+                            <t t-set="value" t-value="k.in_progress"/>
+                            <t t-set="tone" t-value="''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'awaiting_job'"/>
+                            <t t-set="label">Defects w/o job card</t>
+                            <t t-set="icon" t-value="'fa-wrench'"/>
+                            <t t-set="value" t-value="k.awaiting_job"/>
+                            <t t-set="tone" t-value="k.awaiting_job ? 'serious' : ''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'open_high'"/>
+                            <t t-set="label">Open high severity</t>
+                            <t t-set="icon" t-value="'fa-exclamation-triangle'"/>
+                            <t t-set="value" t-value="k.open_high"/>
+                            <t t-set="tone" t-value="k.open_high ? 'critical' : ''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'open_jobs'"/>
+                            <t t-set="label">Open job cards</t>
+                            <t t-set="icon" t-value="'fa-cogs'"/>
+                            <t t-set="value" t-value="k.open_jobs"/>
+                            <t t-set="tone" t-value="''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'overdue'"/>
+                            <t t-set="label">Overdue vehicles</t>
+                            <t t-set="icon" t-value="'fa-calendar-times-o'"/>
+                            <t t-set="value" t-value="k.overdue"/>
+                            <t t-set="foot">no inspection in <t t-esc="k.overdue_days"/> days</t>
+                            <t t-set="tone" t-value="k.overdue ? 'warning' : ''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'repeat_defects'"/>
+                            <t t-set="label">Repeat defects</t>
+                            <t t-set="icon" t-value="'fa-repeat'"/>
+                            <t t-set="value" t-value="k.repeat_defects"/>
+                            <t t-set="foot">in this period</t>
+                            <t t-set="tone" t-value="''"/>
+                        </t>
+                        <t t-call="inspection.KpiTile">
+                            <t t-set="key" t-value="'fixed'"/>
+                            <t t-set="label">Defects repaired</t>
+                            <t t-set="icon" t-value="'fa-check-square-o'"/>
+                            <t t-set="value" t-value="k.fixed_rate"/>
+                            <t t-set="unit" t-value="'%'"/>
+                            <t t-set="foot"><t t-esc="k.fixed_defects"/> of <t t-esc="k.period_defects"/> closed by a job card</t>
+                            <t t-set="tone" t-value="''"/>
+                        </t>
+                    </div>
+
+                    <!-- Trend + result split -->
+                    <div class="o_insp_grid">
+                        <section class="o_insp_card o_insp_span_8">
+                            <header class="o_insp_card_header">
+                                <h4>Inspections over time</h4>
+                                <span class="text-muted small">by result - click a bar to open</span>
+                            </header>
+                            <div class="o_insp_chart o_insp_chart_tall" t-if="state.data.kpi.total">
+                                <canvas t-ref="trendChart" role="img" aria-label="Inspections over time by result"/>
+                            </div>
+                            <div t-else="" class="o_insp_empty">No inspections in this period.</div>
+                        </section>
+                        <section class="o_insp_card o_insp_span_4">
+                            <header class="o_insp_card_header"><h4>Result split</h4></header>
+                            <t t-if="resultTotal">
+                                <div class="o_insp_split" role="img" aria-label="Result split">
+                                    <t t-foreach="['pass', 'pass_defects', 'fail']" t-as="r" t-key="r">
+                                        <div t-if="k[r]" t-attf-class="o_insp_split_seg o_insp_bg_{{r}}"
+                                             t-attf-style="width: {{ resultShare(r) }}%"
+                                             t-att-title="resultLabels[r] + ': ' + k[r]"/>
+                                    </t>
+                                </div>
+                                <ul class="o_insp_legend">
+                                    <t t-foreach="['pass', 'pass_defects', 'fail']" t-as="r" t-key="r">
+                                        <li t-on-click="() => this.onKpiClick(r)">
+                                            <span t-attf-class="o_insp_swatch o_insp_bg_{{r}}"/>
+                                            <i t-attf-class="fa {{ r === 'pass' ? 'fa-check' : r === 'fail' ? 'fa-times' : 'fa-exclamation' }} o_insp_legend_icon" aria-hidden="true"/>
+                                            <span class="o_insp_legend_label" t-esc="resultLabels[r]"/>
+                                            <span class="o_insp_legend_value" t-esc="k[r]"/>
+                                            <span class="o_insp_legend_pct"><t t-esc="resultShare(r)"/>%</span>
+                                        </li>
+                                    </t>
+                                </ul>
+                            </t>
+                            <div t-else="" class="o_insp_empty">No results yet.</div>
+                        </section>
+
+                        <!-- Defects -->
+                        <section class="o_insp_card o_insp_span_6">
+                            <header class="o_insp_card_header">
+                                <h4>Defects by category</h4>
+                                <span class="text-muted small">top 10, by severity</span>
+                            </header>
+                            <div class="o_insp_chart o_insp_chart_tall" t-if="state.data.defects_by_category.length">
+                                <canvas t-ref="categoryChart" role="img" aria-label="Defects by category"/>
+                            </div>
+                            <div t-else="" class="o_insp_empty">No defects in this period.</div>
+                        </section>
+                        <section class="o_insp_card o_insp_span_6">
+                            <header class="o_insp_card_header">
+                                <h4>Vehicles with most defects</h4>
+                                <span class="text-muted small">top 10</span>
+                            </header>
+                            <div class="o_insp_chart o_insp_chart_tall" t-if="state.data.defects_by_vehicle.length">
+                                <canvas t-ref="vehicleChart" role="img" aria-label="Vehicles with most defects"/>
+                            </div>
+                            <div t-else="" class="o_insp_empty">No defects in this period.</div>
+                        </section>
+
+                        <section class="o_insp_card o_insp_span_4">
+                            <header class="o_insp_card_header"><h4>Defects by job type</h4></header>
+                            <div class="o_insp_chart" t-if="state.data.defects_by_job_type.length">
+                                <canvas t-ref="jobTypeChart" role="img" aria-label="Defects by job type"/>
+                            </div>
+                            <div t-else="" class="o_insp_empty">No defects in this period.</div>
+                        </section>
+                        <section class="o_insp_card o_insp_span_4">
+                            <header class="o_insp_card_header"><h4>Most frequent defects</h4></header>
+                            <table class="o_insp_table" t-if="state.data.top_items.length">
+                                <tbody>
+                                    <tr t-foreach="state.data.top_items" t-as="item" t-key="item.id"
+                                        t-on-click="() => this.openDefects(item.name, [...linePeriodDomain, ['item_id', '=', item.id]])">
+                                        <td>
+                                            <div class="fw-semibold text-truncate" t-esc="item.name"/>
+                                            <div class="text-muted small text-truncate" t-esc="item.category"/>
+                                        </td>
+                                        <td class="text-end fw-bold" t-esc="item.count"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_insp_empty">No defects in this period.</div>
+                        </section>
+                        <section class="o_insp_card o_insp_span_4">
+                            <header class="o_insp_card_header"><h4>Mechanics</h4></header>
+                            <table class="o_insp_table" t-if="state.data.mechanics.length">
+                                <thead>
+                                    <tr><th>Mechanic</th><th class="text-end">Insp.</th><th class="text-end">Defects</th><th class="text-end">Avg min</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.mechanics" t-as="m" t-key="m.id"
+                                        t-on-click="() => this.openInspections(m.name, [...periodDomain, ['mechanic_id', '=', m.id]])">
+                                        <td class="text-truncate" t-esc="m.name"/>
+                                        <td class="text-end" t-esc="m.count"/>
+                                        <td class="text-end" t-esc="m.defects"/>
+                                        <td class="text-end" t-esc="Math.round(m.avg_duration * 60)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_insp_empty">No inspections in this period.</div>
+                        </section>
+
+                        <!-- Lists -->
+                        <section class="o_insp_card o_insp_span_6">
+                            <header class="o_insp_card_header">
+                                <h4>Overdue vehicles</h4>
+                                <span class="text-muted small">no inspection in <t t-esc="k.overdue_days"/>+ days</span>
+                            </header>
+                            <table class="o_insp_table" t-if="state.data.overdue.length">
+                                <thead><tr><th>Vehicle</th><th>Last inspection</th><th class="text-end">Days</th><th/></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.overdue" t-as="v" t-key="v.id"
+                                        t-on-click="() => this.openRecord('fleet.vehicle', v.id)">
+                                        <td>
+                                            <div class="fw-semibold text-truncate" t-esc="v.name"/>
+                                        </td>
+                                        <td t-esc="formatDate(v.last_date)"/>
+                                        <td class="text-end">
+                                            <span class="badge" t-att-class="v.days === null ? 'text-bg-danger' : 'text-bg-warning'"
+                                                  t-esc="v.days === null ? 'never' : v.days"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-link p-0"
+                                                    t-on-click.stop="() => this.newInspection(v.id)">
+                                                <i class="fa fa-plus me-1" aria-hidden="true"/>Inspect
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_insp_empty"><i class="fa fa-check me-1" aria-hidden="true"/>Every active vehicle is up to date.</div>
+                        </section>
+                        <section class="o_insp_card o_insp_span_6">
+                            <header class="o_insp_card_header"><h4>Recent failed inspections</h4></header>
+                            <table class="o_insp_table" t-if="state.data.recent_failed.length">
+                                <thead><tr><th>Inspection</th><th>Vehicle</th><th class="text-end">High / All</th><th>Job cards</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.recent_failed" t-as="f" t-key="f.id"
+                                        t-on-click="() => this.openRecord('fleet.inspection', f.id)">
+                                        <td>
+                                            <div class="fw-semibold" t-esc="f.name"/>
+                                            <div class="text-muted small" t-esc="formatDate(f.date)"/>
+                                        </td>
+                                        <td class="text-truncate" t-esc="f.vehicle"/>
+                                        <td class="text-end"><b t-esc="f.high"/> / <t t-esc="f.defects"/></td>
+                                        <td>
+                                            <span t-if="f.state !== 'approved'" class="badge text-bg-light">not approved</span>
+                                            <span t-elif="f.job_card_status === 'assigned'" class="badge text-bg-success">created</span>
+                                            <span t-elif="f.job_card_status === 'partial'" class="badge text-bg-warning">partial</span>
+                                            <span t-else="" class="badge text-bg-danger">missing</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_insp_empty"><i class="fa fa-check me-1" aria-hidden="true"/>No failed inspections in this period.</div>
+                        </section>
+                    </div>
+                </t>
+                <div t-else="" class="o_insp_empty py-5">
+                    <i class="fa fa-circle-o-notch fa-spin me-2" aria-hidden="true"/>Loading...
+                </div>
+                </t>
+
+                <!-- ======================= WORKSHOP / STORES TABS ======================= -->
+                <t t-if="state.tab !== 'inspection'">
+                    <t t-if="state.workshop and !state.workshop.allowed">
+                        <div class="o_insp_empty py-5">You do not have access to the workshop figures.</div>
+                    </t>
+                    <t t-elif="state.workshop">
+                        <t t-set="w" t-value="wk"/>
+                        <t t-if="state.tab === 'workshop'" t-call="inspection.DashboardWorkshop"/>
+                        <t t-else="" t-call="inspection.DashboardStores"/>
+                    </t>
+                    <div t-else="" class="o_insp_empty py-5">
+                        <i class="fa fa-circle-o-notch fa-spin me-2" aria-hidden="true"/>Loading...
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+
+    <!-- ======================= WORKSHOP TAB ======================= -->
+    <t t-name="inspection.DashboardWorkshop">
+        <div class="o_insp_tiles">
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_open'"/>
+                <t t-set="label">Open job cards</t>
+                <t t-set="icon" t-value="'fa-wrench'"/>
+                <t t-set="value" t-value="w.open_jobs"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_completed'"/>
+                <t t-set="label">Completed</t>
+                <t t-set="icon" t-value="'fa-check-circle'"/>
+                <t t-set="value" t-value="w.completed"/>
+                <t t-set="foot">in this period</t>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_completed'"/>
+                <t t-set="label">Avg turnaround</t>
+                <t t-set="icon" t-value="'fa-clock-o'"/>
+                <t t-set="value" t-value="w.avg_tat"/>
+                <t t-set="unit" t-value="' h'"/>
+                <t t-set="foot">job card opened to closed</t>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_completed'"/>
+                <t t-set="label">Avg vehicle downtime</t>
+                <t t-set="icon" t-value="'fa-truck'"/>
+                <t t-set="value" t-value="w.avg_downtime"/>
+                <t t-set="unit" t-value="' days'"/>
+                <t t-set="foot">inspection to back in service</t>
+            </t>
+            <t t-if="state.workshop.is_supervisor" t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_completed'"/>
+                <t t-set="label">Maintenance cost</t>
+                <t t-set="icon" t-value="'fa-money'"/>
+                <t t-set="value" t-value="formatAmount(w.total_cost)"/>
+                <t t-set="foot">completed job cards</t>
+            </t>
+        </div>
+
+        <h3 class="o_insp_section_title">Needs attention</h3>
+        <div class="o_insp_tiles o_insp_tiles_compact">
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_waiting_approval'"/>
+                <t t-set="label">Waiting approval</t>
+                <t t-set="icon" t-value="'fa-gavel'"/>
+                <t t-set="value" t-value="w.waiting_approval"/>
+                <t t-set="tone" t-value="w.waiting_approval ? 'warning' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_waiting_parts'"/>
+                <t t-set="label">Waiting parts</t>
+                <t t-set="icon" t-value="'fa-cubes'"/>
+                <t t-set="value" t-value="w.waiting_parts"/>
+                <t t-set="tone" t-value="w.waiting_parts ? 'serious' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_in_progress'"/>
+                <t t-set="label">In progress</t>
+                <t t-set="icon" t-value="'fa-cogs'"/>
+                <t t-set="value" t-value="w.in_progress"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_quality_check'"/>
+                <t t-set="label">Quality check</t>
+                <t t-set="icon" t-value="'fa-search'"/>
+                <t t-set="value" t-value="w.quality_check"/>
+                <t t-set="tone" t-value="w.quality_check ? 'warning' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'ws_overdue'"/>
+                <t t-set="label">Overdue</t>
+                <t t-set="icon" t-value="'fa-calendar-times-o'"/>
+                <t t-set="value" t-value="w.overdue_jobs"/>
+                <t t-set="foot">past the promised date</t>
+                <t t-set="tone" t-value="w.overdue_jobs ? 'critical' : ''"/>
+            </t>
+        </div>
+
+        <div class="o_insp_grid">
+            <section class="o_insp_card o_insp_span_8" t-if="state.workshop.is_supervisor">
+                <header class="o_insp_card_header">
+                    <h4>Maintenance cost over time</h4>
+                    <span class="text-muted small">completed job cards - click a bar to open</span>
+                </header>
+                <div class="o_insp_chart o_insp_chart_tall" t-if="w.completed">
+                    <canvas t-ref="costTrendChart" role="img" aria-label="Maintenance cost over time by cost type"/>
+                </div>
+                <div t-else="" class="o_insp_empty">No job card completed in this period.</div>
+            </section>
+            <section class="o_insp_card o_insp_span_4" t-if="state.workshop.is_supervisor">
+                <header class="o_insp_card_header"><h4>Cost split</h4></header>
+                <t t-if="costTotal">
+                    <div class="o_insp_split" role="img" aria-label="Cost split">
+                        <t t-foreach="['labour', 'parts', 'outside']" t-as="c" t-key="c">
+                            <div t-if="w[c + '_cost']" t-attf-class="o_insp_split_seg o_insp_bg_cost_{{c}}"
+                                 t-attf-style="width: {{ costShare(c) }}%"
+                                 t-att-title="costLabels[c] + ': ' + formatAmount(w[c + '_cost'])"/>
+                        </t>
+                    </div>
+                    <ul class="o_insp_legend">
+                        <t t-foreach="['labour', 'parts', 'outside']" t-as="c" t-key="c">
+                            <li t-on-click="() => this.onKpiClick('ws_completed')">
+                                <span t-attf-class="o_insp_swatch o_insp_bg_cost_{{c}}"/>
+                                <span class="o_insp_legend_label" t-esc="costLabels[c]"/>
+                                <span class="o_insp_legend_value" t-esc="formatAmount(w[c + '_cost'])"/>
+                                <span class="o_insp_legend_pct"><t t-esc="costShare(c)"/>%</span>
+                            </li>
+                        </t>
+                    </ul>
+                </t>
+                <div t-else="" class="o_insp_empty">No cost recorded yet.</div>
+            </section>
+
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header">
+                    <h4>Open job cards by status</h4>
+                    <span class="text-muted small">click a bar to open</span>
+                </header>
+                <div class="o_insp_chart o_insp_chart_tall" t-if="w.open_jobs">
+                    <canvas t-ref="jobStateChart" role="img" aria-label="Open job cards by status"/>
+                </div>
+                <div t-else="" class="o_insp_empty"><i class="fa fa-check me-1" aria-hidden="true"/>No open job card.</div>
+            </section>
+            <section class="o_insp_card o_insp_span_6" t-if="state.workshop.is_supervisor">
+                <header class="o_insp_card_header">
+                    <h4>Most expensive vehicles</h4>
+                    <span class="text-muted small">top 10, completed in the period</span>
+                </header>
+                <div class="o_insp_chart o_insp_chart_tall" t-if="state.workshop.cost_by_vehicle.length">
+                    <canvas t-ref="costVehicleChart" role="img" aria-label="Maintenance cost by vehicle"/>
+                </div>
+                <div t-else="" class="o_insp_empty">No job card completed in this period.</div>
+            </section>
+
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header"><h4>Oldest open job cards</h4></header>
+                <table class="o_insp_table" t-if="state.workshop.oldest_jobs.length">
+                    <thead><tr><th>Job card</th><th>Vehicle</th><th>Status</th><th class="text-end">Days</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.oldest_jobs" t-as="j" t-key="j.id"
+                            t-on-click="() => this.openRecord('fleet.vehicle.log.services', j.id)">
+                            <td class="text-truncate fw-semibold" t-esc="j.name"/>
+                            <td class="text-truncate" t-esc="j.vehicle"/>
+                            <td>
+                                <span class="badge text-bg-light" t-esc="j.state_label"/>
+                                <i t-if="j.overdue" class="fa fa-clock-o ms-1 text-danger" title="Overdue" aria-label="Overdue"/>
+                            </td>
+                            <td class="text-end" t-esc="j.age"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="o_insp_empty"><i class="fa fa-check me-1" aria-hidden="true"/>No open job card.</div>
+            </section>
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header"><h4>Technicians</h4><span class="text-muted small">labour logged in the period</span></header>
+                <table class="o_insp_table" t-if="state.workshop.technicians.length">
+                    <thead><tr><th>Technician</th><th class="text-end">Jobs</th><th class="text-end">Hours</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.technicians" t-as="t" t-key="t.id"
+                            t-on-click="() => this.openList('fleet.job.labour.line', t.name, [['employee_id', '=', t.id], ['date', '&gt;=', state.workshop.period.date_from], ['date', '&lt;=', state.workshop.period.date_to]], ['list', 'pivot'])">
+                            <td class="text-truncate" t-esc="t.name"/>
+                            <td class="text-end" t-esc="t.jobs"/>
+                            <td class="text-end fw-bold" t-esc="t.hours"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="o_insp_empty">No labour logged in this period.</div>
+            </section>
+
+            <section class="o_insp_card o_insp_span_6" t-if="state.workshop.by_job_type.length">
+                <header class="o_insp_card_header"><h4>Completed by job type</h4></header>
+                <table class="o_insp_table">
+                    <thead><tr><th>Job type</th><th class="text-end">Jobs</th><th class="text-end" t-if="state.workshop.is_supervisor">Cost</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.by_job_type" t-as="jt" t-key="jt.id or 0"
+                            t-on-click="() => this.openJobs(jt.name, [...completedDomain, ['inspection_job_type_id', '=', jt.id || false]])">
+                            <td class="text-truncate" t-esc="jt.name"/>
+                            <td class="text-end" t-esc="jt.count"/>
+                            <td class="text-end" t-if="state.workshop.is_supervisor" t-esc="formatAmount(jt.cost)"/>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </t>
+
+    <!-- ======================= STORES & TYRES TAB ======================= -->
+    <t t-name="inspection.DashboardStores">
+        <h3 class="o_insp_section_title mt-0">Material requests</h3>
+        <div class="o_insp_tiles o_insp_tiles_compact">
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'mr_to_approve'"/>
+                <t t-set="label">To approve</t>
+                <t t-set="icon" t-value="'fa-gavel'"/>
+                <t t-set="value" t-value="w.mr_to_approve"/>
+                <t t-set="tone" t-value="w.mr_to_approve ? 'warning' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'mr_waiting'"/>
+                <t t-set="label">Waiting stock</t>
+                <t t-set="icon" t-value="'fa-hourglass-half'"/>
+                <t t-set="value" t-value="w.mr_waiting"/>
+                <t t-set="tone" t-value="w.mr_waiting ? 'serious' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'mr_ready'"/>
+                <t t-set="label">Ready to issue</t>
+                <t t-set="icon" t-value="'fa-share-square-o'"/>
+                <t t-set="value" t-value="w.mr_ready"/>
+                <t t-set="tone" t-value="w.mr_ready ? 'warning' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'mr_issued'"/>
+                <t t-set="label">Usage to record</t>
+                <t t-set="icon" t-value="'fa-pencil'"/>
+                <t t-set="value" t-value="w.mr_issued"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'mr_shortage'"/>
+                <t t-set="label">Lines to purchase</t>
+                <t t-set="icon" t-value="'fa-exclamation-triangle'"/>
+                <t t-set="value" t-value="w.shortage_lines"/>
+                <t t-set="foot">not on a purchase order yet</t>
+                <t t-set="tone" t-value="w.shortage_lines ? 'critical' : ''"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'po_open'"/>
+                <t t-set="label">Open RFQs</t>
+                <t t-set="icon" t-value="'fa-shopping-cart'"/>
+                <t t-set="value" t-value="w.open_rfq"/>
+                <t t-set="foot">to confirm with vendors</t>
+            </t>
+        </div>
+
+        <h3 class="o_insp_section_title">Tyres</h3>
+        <div class="o_insp_tiles o_insp_tiles_compact">
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'tyre_fitted'"/>
+                <t t-set="label">Fitted</t>
+                <t t-set="icon" t-value="'fa-circle-o-notch'"/>
+                <t t-set="value" t-value="w.tyres_fitted"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'tyre_stock'"/>
+                <t t-set="label">In stock</t>
+                <t t-set="icon" t-value="'fa-cubes'"/>
+                <t t-set="value" t-value="w.tyres_in_stock"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'tyre_retread'"/>
+                <t t-set="label">At retreading</t>
+                <t t-set="icon" t-value="'fa-recycle'"/>
+                <t t-set="value" t-value="w.tyres_retread"/>
+            </t>
+            <t t-call="inspection.KpiTile">
+                <t t-set="key" t-value="'tyre_due'"/>
+                <t t-set="label">Due for replacement</t>
+                <t t-set="icon" t-value="'fa-exclamation-triangle'"/>
+                <t t-set="value" t-value="w.tyres_due"/>
+                <t t-set="foot">min. tread or <t t-esc="w.wear_pct"/>% of life reached</t>
+                <t t-set="tone" t-value="w.tyres_due ? 'critical' : ''"/>
+            </t>
+        </div>
+
+        <div class="o_insp_grid">
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header"><h4>Tyres due for replacement</h4></header>
+                <table class="o_insp_table" t-if="state.workshop.tyres_due.length">
+                    <thead><tr><th>Serial</th><th>Vehicle</th><th>Pos.</th><th class="text-end">Km</th><th class="text-end">Life</th><th class="text-end">Tread</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.tyres_due" t-as="t" t-key="t.id"
+                            t-on-click="() => this.openRecord('stock.lot', t.id)">
+                            <td>
+                                <div class="fw-semibold text-truncate" t-esc="t.name"/>
+                                <div class="text-muted small text-truncate" t-esc="t.product"/>
+                            </td>
+                            <td class="text-truncate" t-esc="t.vehicle"/>
+                            <td t-esc="t.position"/>
+                            <td class="text-end" t-esc="formatAmount(t.km)"/>
+                            <td class="text-end"><span class="badge text-bg-danger"><t t-esc="t.wear"/>%</span></td>
+                            <td class="text-end" t-esc="t.tread or '-'"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="o_insp_empty"><i class="fa fa-check me-1" aria-hidden="true"/>No fitted tyre needs replacement.</div>
+            </section>
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header">
+                    <h4>Tyre removals by reason</h4>
+                    <span class="text-muted small">in the period - click a bar to open</span>
+                </header>
+                <div class="o_insp_chart" t-if="state.workshop.tyre_removals.length">
+                    <canvas t-ref="tyreRemovalChart" role="img" aria-label="Tyre removals by reason"/>
+                </div>
+                <div t-else="" class="o_insp_empty">No tyre removed in this period.</div>
+            </section>
+
+            <section class="o_insp_card o_insp_span_6">
+                <header class="o_insp_card_header"><h4>Top parts consumed</h4><span class="text-muted small">by cost, in the period</span></header>
+                <table class="o_insp_table" t-if="state.workshop.top_parts.length">
+                    <thead><tr><th>Product</th><th class="text-end">Qty</th><th class="text-end" t-if="state.workshop.is_supervisor">Cost</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.top_parts" t-as="p" t-key="p.id"
+                            t-on-click="() => this.openList('fleet.job.material.request.line', p.name, [['product_id', '=', p.id], ['request_state', 'in', ['issued', 'done']]], ['list', 'pivot'])">
+                            <td class="text-truncate" t-esc="p.name"/>
+                            <td class="text-end" t-esc="p.qty"/>
+                            <td class="text-end" t-if="state.workshop.is_supervisor" t-esc="formatAmount(p.cost)"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="o_insp_empty">No parts consumed in this period.</div>
+            </section>
+            <section class="o_insp_card o_insp_span_6" t-if="state.workshop.is_supervisor">
+                <header class="o_insp_card_header"><h4>Tyre cost per km</h4><span class="text-muted small">by product, removed tyres</span></header>
+                <table class="o_insp_table" t-if="state.workshop.tyre_cost_per_km.length">
+                    <thead><tr><th>Tyre</th><th class="text-end">Tyres</th><th class="text-end">Avg km</th><th class="text-end">Cost / km</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="state.workshop.tyre_cost_per_km" t-as="c" t-key="c.id"
+                            t-on-click="() => this.openList('fleet.vehicle.installed.part', c.name, [['product_id', '=', c.id], ['status', '=', 'removed']], ['list', 'pivot'])">
+                            <td class="text-truncate" t-esc="c.name"/>
+                            <td class="text-end" t-esc="c.count"/>
+                            <td class="text-end" t-esc="formatAmount(c.avg_km)"/>
+                            <td class="text-end fw-bold" t-esc="c.cost_per_km"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="o_insp_empty">No tyre life recorded yet.</div>
+            </section>
+        </div>
+    </t>
+
+</templates>

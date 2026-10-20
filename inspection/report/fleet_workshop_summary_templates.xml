@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_workshop_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <div class="page">
+                        <p class="insp-h">Workshop Summary</p>
+                        <p class="insp-sub">
+                            Job cards completed from <span t-field="o.date_from"/> to <span t-field="o.date_to"/>
+                            <t t-if="o.vehicle_ids"> - <t t-esc="len(o.vehicle_ids)"/> vehicle(s)</t>
+                            <t t-if="o.workshop_ids"> - <t t-esc="', '.join(o.workshop_ids.mapped('name'))"/></t>
+                            <t t-if="o.job_type_ids"> - <t t-esc="', '.join(o.job_type_ids.mapped('name'))"/></t>
+                        </p>
+
+                        <table style="width:100%; border-spacing: 6px; border-collapse: separate;">
+                            <tr>
+                                <td class="insp-kpi"><div class="v" t-esc="total_jobs"/><div class="l">Job cards</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.2f' % total_cost"/><div class="l">Total cost</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.2f' % labour_cost"/><div class="l">Labour</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.2f' % parts_cost"/><div class="l">Parts</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.2f' % outside_cost"/><div class="l">Outside</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.1f' % labour_hours"/><div class="l">Labour hrs</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.1f' % avg_tat"/><div class="l">Avg turnaround (h)</div></td>
+                                <td class="insp-kpi"><div class="v" t-esc="'%.1f' % avg_downtime"/><div class="l">Avg downtime (d)</div></td>
+                            </tr>
+                        </table>
+                        <p t-if="not total_jobs" class="insp-muted">No job card completed in this period.</p>
+
+                        <t t-if="vehicles">
+                            <div class="insp-section">Cost by Vehicle</div>
+                            <table class="insp-table">
+                                <thead>
+                                    <tr><th>Vehicle</th><th>Plate</th><th>Jobs</th><th style="text-align:right">Labour</th>
+                                        <th style="text-align:right">Parts</th><th style="text-align:right">Outside</th>
+                                        <th style="text-align:right">Total</th><th style="text-align:right">Downtime (d)</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="vehicles" t-as="v">
+                                        <td t-esc="v['vehicle'].display_name"/>
+                                        <td t-esc="v['vehicle'].license_plate or ''"/>
+                                        <td t-esc="v['count']"/>
+                                        <td style="text-align:right" t-esc="'%.2f' % v['labour']"/>
+                                        <td style="text-align:right" t-esc="'%.2f' % v['parts']"/>
+                                        <td style="text-align:right" t-esc="'%.2f' % v['outside']"/>
+                                        <td style="text-align:right"><b t-esc="'%.2f' % v['total']"/></td>
+                                        <td style="text-align:right" t-esc="'%.0f' % v['downtime']"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <table t-if="total_jobs" style="width:100%; margin-top: 6px;">
+                            <tr>
+                                <td style="width:50%; vertical-align: top; padding-right: 6px;">
+                                    <div class="insp-section">By Job Type</div>
+                                    <table class="insp-table">
+                                        <thead><tr><th>Job Type</th><th>Jobs</th><th style="text-align:right">Cost</th><th style="text-align:right">Avg TAT (h)</th></tr></thead>
+                                        <tbody>
+                                            <tr t-foreach="job_types" t-as="j">
+                                                <td t-esc="j['job_type'].display_name or 'Unassigned'"/>
+                                                <td t-esc="j['count']"/>
+                                                <td style="text-align:right" t-esc="'%.2f' % j['total']"/>
+                                                <td style="text-align:right" t-esc="'%.1f' % j['avg_tat']"/>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                                <td style="width:50%; vertical-align: top; padding-left: 6px;">
+                                    <div class="insp-section">Technicians</div>
+                                    <table class="insp-table">
+                                        <thead><tr><th>Technician</th><th>Jobs</th><th style="text-align:right">Hours</th><th style="text-align:right">Amount</th></tr></thead>
+                                        <tbody>
+                                            <tr t-foreach="technicians" t-as="t">
+                                                <td t-esc="t['employee'].display_name"/>
+                                                <td t-esc="t['jobs']"/>
+                                                <td style="text-align:right" t-esc="'%.1f' % t['hours']"/>
+                                                <td style="text-align:right" t-esc="'%.2f' % t['amount']"/>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <t t-if="parts">
+                            <div class="insp-section">Top Parts Consumed</div>
+                            <table class="insp-table">
+                                <thead><tr><th>Product</th><th style="text-align:right">Used</th><th style="text-align:right">Returned</th><th style="text-align:right">Cost</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="parts" t-as="p">
+                                        <td t-esc="p['product'].display_name"/>
+                                        <td style="text-align:right" t-esc="p['qty']"/>
+                                        <td style="text-align:right" t-esc="p['returned']"/>
+                                        <td style="text-align:right" t-esc="'%.2f' % p['cost']"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <t t-if="fitted or removed">
+                            <div class="insp-section">Tyres &amp; Serialised Parts</div>
+                            <table class="insp-table">
+                                <thead><tr><th>Vehicle</th><th>Movement</th><th>Position</th><th>Part</th><th>Serial No.</th><th>Km covered</th><th>Reason</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="removed" t-as="p">
+                                        <td t-esc="p.vehicle_id.display_name"/>
+                                        <td>Removed</td>
+                                        <td t-esc="p.position_id.code or ''"/>
+                                        <td t-esc="p.product_id.display_name or p.name"/>
+                                        <td t-esc="p.part_number or ''"/>
+                                        <td t-esc="'%.0f' % p.mileage_covered"/>
+                                        <td><span t-field="p.removal_reason"/></td>
+                                    </tr>
+                                    <tr t-foreach="fitted" t-as="p">
+                                        <td t-esc="p.vehicle_id.display_name"/>
+                                        <td>Fitted</td>
+                                        <td t-esc="p.position_id.code or ''"/>
+                                        <td t-esc="p.product_id.display_name or p.name"/>
+                                        <td t-esc="p.part_number or ''"/>
+                                        <td/>
+                                        <td/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

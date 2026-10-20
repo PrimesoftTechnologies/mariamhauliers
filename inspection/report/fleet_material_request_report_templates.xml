@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_fleet_material_request">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-call="inspection.report_inspection_styles"/>
+                    <div class="page">
+                        <p class="insp-h">Material Request <span t-field="o.name"/></p>
+                        <p class="insp-sub"><span t-field="o.state"/></p>
+                        <table class="insp-table" style="margin-bottom: 8px;">
+                            <tr>
+                                <td><strong>Job Card:</strong> <span t-field="o.job_id.job_number"/></td>
+                                <td><strong>Vehicle:</strong> <span t-field="o.vehicle_id.name"/>
+                                    (<span t-field="o.vehicle_id.license_plate"/>)</td>
+                                <td><strong>Workshop:</strong> <span t-field="o.workshop_id.name"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Requested By:</strong> <span t-field="o.requested_by.name"/></td>
+                                <td><strong>Date:</strong> <span t-field="o.date"/></td>
+                                <td><strong>Required By:</strong> <span t-field="o.date_required"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Approved By:</strong> <span t-field="o.approved_by_id.name"/></td>
+                                <td><strong>Issue From:</strong> <span t-field="o.location_id.display_name"/></td>
+                                <td><strong>Reason:</strong> <span t-field="o.reason"/></td>
+                            </tr>
+                        </table>
+                        <table class="insp-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th><th>Supply</th><th>Required</th><th>Approved</th>
+                                    <th>From Stock</th><th>To Buy</th><th>Issued</th><th>Used</th><th>Returned</th>
+                                    <th>Serial Nos.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="line">
+                                    <td t-esc="line.product_id.display_name"/>
+                                    <td><span t-field="line.supply_method"/></td>
+                                    <td t-esc="line.required_qty"/>
+                                    <td t-esc="line.approved_qty"/>
+                                    <td t-esc="line.qty_from_stock"/>
+                                    <td t-esc="line.qty_to_purchase"/>
+                                    <td t-esc="line.issued_qty"/>
+                                    <td t-esc="line.used_qty"/>
+                                    <td t-esc="line.returned_qty"/>
+                                    <td t-esc="', '.join(line.issued_lot_ids.mapped('name'))"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <t t-set="pickings" t-value="o.sudo().picking_ids"/>
+                        <t t-set="orders" t-value="o.sudo().purchase_order_ids"/>
+                        <table t-if="pickings or orders" class="insp-table" style="margin-top: 8px;">
+                            <tr t-if="pickings">
+                                <td><strong>Transfers:</strong>
+                                    <t t-esc="', '.join('%s (%s)' % (p.name, dict(p._fields['state'].selection).get(p.state)) for p in pickings)"/></td>
+                            </tr>
+                            <tr t-if="orders">
+                                <td><strong>Purchase Orders:</strong>
+                                    <t t-esc="', '.join('%s - %s (%s)' % (po.name, po.partner_id.name, dict(po._fields['state'].selection).get(po.state)) for po in orders)"/></td>
+                            </tr>
+                        </table>
+                        <table style="width:100%; margin-top: 30px; page-break-inside: avoid;">
+                            <tr>
+                                <td style="width:25%; text-align:center;">________________<br/>Requested by</td>
+                                <td style="width:25%; text-align:center;">________________<br/>Approved by</td>
+                                <td style="width:25%; text-align:center;">________________<br/>Issued by (Store)</td>
+                                <td style="width:25%; text-align:center;">________________<br/>Received by (Mechanic)</td>
+                            </tr>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

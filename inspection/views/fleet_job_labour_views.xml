@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_job_labour_line_list" model="ir.ui.view">
+        <field name="name">fleet.job.labour.line.list</field>
+        <field name="model">fleet.job.labour.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date"/>
+                <field name="job_id"/>
+                <field name="vehicle_id" optional="show"/>
+                <field name="job_type_id" optional="show"/>
+                <field name="employee_id"/>
+                <field name="description"/>
+                <field name="hours" widget="float_time" sum="Total Hours"/>
+                <field name="hourly_rate"/>
+                <field name="amount" sum="Total Amount"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_labour_line_pivot" model="ir.ui.view">
+        <field name="name">fleet.job.labour.line.pivot</field>
+        <field name="model">fleet.job.labour.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Technician Performance">
+                <field name="employee_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="hours" type="measure"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_labour_line_graph" model="ir.ui.view">
+        <field name="name">fleet.job.labour.line.graph</field>
+        <field name="model">fleet.job.labour.line</field>
+        <field name="arch" type="xml">
+            <graph string="Technician Hours" type="bar">
+                <field name="employee_id"/>
+                <field name="hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_labour_line_search" model="ir.ui.view">
+        <field name="name">fleet.job.labour.line.search</field>
+        <field name="model">fleet.job.labour.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="job_id"/>
+                <field name="vehicle_id"/>
+                <filter string="This Month" name="this_month"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter string="Date" name="filter_date" date="date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Technician" name="group_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Job Type" name="group_job_type" context="{'group_by': 'job_type_id'}"/>
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fleet_job_labour_line" model="ir.actions.act_window">
+        <field name="name">Technician Performance</field>
+        <field name="res_model">fleet.job.labour.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_group_employee': 1}</field>
+    </record>
+
+</odoo>

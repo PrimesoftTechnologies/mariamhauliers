@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======================= SERIAL NUMBERS (TYRES) ======================= -->
+    <record id="view_stock_lot_form_fleet" model="ir.ui.view">
+        <field name="name">stock.lot.form.fleet</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header invisible="not fleet_part_type">
+                    <button name="action_fleet_back_from_retread" type="object" string="Back from Retreading"
+                            class="btn-primary" invisible="fleet_status != 'retread'"
+                            groups="inspection.group_workshop_storekeeper"/>
+                    <button name="action_fleet_scrap" type="object" string="Scrap"
+                            invisible="fleet_status in ('installed', 'scrapped')"
+                            groups="inspection.group_workshop_storekeeper"
+                            confirm="Mark this serial number as scrapped?"/>
+                    <field name="fleet_status" widget="statusbar"
+                           statusbar_visible="in_stock,issued,installed,removed"/>
+                </header>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_view_fleet_history" type="object" class="oe_stat_button"
+                        icon="fa-truck" invisible="not fleet_part_type">
+                    <field name="fleet_install_count" widget="statinfo" string="Fitments"/>
+                </button>
+            </div>
+            <xpath expr="//sheet" position="inside">
+                <div name="fleet_history" invisible="not fleet_part_type">
+                    <separator string="Fleet"/>
+                    <group>
+                        <group string="Current Fitment">
+                            <field name="fleet_part_type"/>
+                            <field name="fleet_vehicle_id"/>
+                            <field name="fleet_position_id"/>
+                            <field name="fleet_install_date"/>
+                            <field name="fleet_last_tread_depth"/>
+                            <field name="fleet_last_reading_date"/>
+                        </group>
+                        <group string="Life">
+                            <field name="fleet_km_completed"/>
+                            <field name="fleet_km_current"/>
+                            <field name="fleet_km_total"/>
+                            <field name="fleet_wear_pct" widget="progressbar"/>
+                            <field name="fleet_retread_count"/>
+                            <field name="fleet_cost" groups="inspection.group_workshop_supervisor"/>
+                            <field name="fleet_cost_per_km" groups="inspection.group_workshop_supervisor"/>
+                        </group>
+                    </group>
+                    <separator string="Fitment History"/>
+                    <field name="installed_part_ids" readonly="1">
+                        <list decoration-muted="status == 'removed'">
+                            <field name="vehicle_id"/>
+                            <field name="position_id"/>
+                            <field name="install_date"/>
+                            <field name="mileage_at_install"/>
+                            <field name="remove_date"/>
+                            <field name="mileage_at_removal"/>
+                            <field name="mileage_covered"/>
+                            <field name="removal_reason"/>
+                            <field name="removal_destination"/>
+                            <field name="status" widget="badge"/>
+                        </list>
+                    </field>
+                    <separator string="Inspection Readings"/>
+                    <field name="fleet_inspection_line_ids" readonly="1">
+                        <list>
+                            <field name="inspection_date"/>
+                            <field name="inspection_id"/>
+                            <field name="vehicle_id"/>
+                            <field name="position_id"/>
+                            <field name="tread_depth"/>
+                            <field name="pressure"/>
+                            <field name="result"/>
+                            <field name="comment"/>
+                        </list>
+                    </field>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_stock_lot_fleet_list" model="ir.ui.view">
+        <field name="name">stock.lot.fleet.list</field>
+        <field name="model">stock.lot</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-danger="fleet_status == 'scrapped'" decoration-muted="fleet_status == 'scrapped'"
+                  decoration-success="fleet_status == 'installed'">
+                <field name="name" string="Serial No."/>
+                <field name="product_id"/>
+                <field name="fleet_status" widget="badge"
+                       decoration-success="fleet_status == 'installed'"
+                       decoration-info="fleet_status in ('in_stock', 'issued')"
+                       decoration-warning="fleet_status in ('removed', 'retread')"/>
+                <field name="fleet_vehicle_id"/>
+                <field name="fleet_position_id"/>
+                <field name="fleet_install_date" optional="show"/>
+                <field name="fleet_km_total" optional="show"/>
+                <field name="fleet_wear_pct" widget="progressbar" optional="show"/>
+                <field name="fleet_last_tread_depth" optional="show"/>
+                <field name="fleet_retread_count" optional="hide"/>
+                <field name="fleet_cost_per_km" optional="hide" groups="inspection.group_workshop_supervisor"/>
+                <field name="product_qty" string="On Hand" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_stock_lot_fleet_search" model="ir.ui.view">
+        <field name="name">stock.lot.fleet.search</field>
+        <field name="model">stock.lot</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Serial No."/>
+                <field name="product_id"/>
+                <field name="fleet_vehicle_id"/>
+                <field name="fleet_position_id"/>
+                <filter string="Fitted" name="fitted" domain="[('fleet_status', '=', 'installed')]"/>
+                <filter string="In Stock" name="in_stock" domain="[('fleet_status', '=', 'in_stock')]"/>
+                <filter string="Issued / To Fit" name="issued" domain="[('fleet_status', '=', 'issued')]"/>
+                <filter string="At Retreading" name="retread" domain="[('fleet_status', '=', 'retread')]"/>
+                <filter string="Scrapped" name="scrapped" domain="[('fleet_status', '=', 'scrapped')]"/>
+                <separator/>
+                <filter string="Tyres" name="tyres" domain="[('fleet_part_type', '=', 'tyre')]"/>
+                <filter string="Batteries" name="batteries" domain="[('fleet_part_type', '=', 'battery')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'fleet_vehicle_id'}"/>
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'fleet_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fleet_tyre_register" model="ir.actions.act_window">
+        <field name="name">Tyre &amp; Part Register</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('fleet_part_type', '!=', False)]</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_stock_lot_fleet_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('stock.view_production_lot_form')})]"/>
+        <field name="search_view_id" ref="view_stock_lot_fleet_search"/>
+        <field name="context">{'search_default_tyres': 1, 'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No tyre serial numbers yet</p>
+            <p>Set a <b>Fleet Part Type</b> (Tyre, Battery) on the product: it becomes tracked by serial
+               number. Serials received in stock appear here and are followed from issue to fitment,
+               removal, retreading and scrap.</p>
+        </field>
+    </record>
+
+    <!-- ======================= PRODUCT ======================= -->
+    <record id="view_product_template_form_fleet" model="ir.ui.view">
+        <field name="name">product.template.form.fleet</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Fleet" name="fleet" invisible="type == 'service'">
+                    <group>
+                        <group string="Fleet Part">
+                            <field name="fleet_part_type"/>
+                            <field name="fleet_expected_life_km" invisible="not fleet_part_type"/>
+                        </group>
+                        <group string="Tyre" invisible="fleet_part_type != 'tyre'">
+                            <field name="fleet_new_tread_depth"/>
+                            <field name="fleet_min_tread_depth"/>
+                        </group>
+                    </group>
+                    <p class="text-muted" invisible="not fleet_part_type">
+                        Fleet parts are tracked by serial number: each serial is followed per vehicle and position.
+                    </p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ======================= TRANSFERS / PURCHASES ======================= -->
+    <record id="view_picking_form_fleet" model="ir.ui.view">
+        <field name="name">stock.picking.form.fleet</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <field name="origin" position="after">
+                <field name="workshop_material_request_id" invisible="not workshop_material_request_id" readonly="1"/>
+                <field name="fleet_job_id" invisible="not fleet_job_id"/>
+                <field name="fleet_vehicle_id" invisible="not fleet_vehicle_id"/>
+                <field name="fleet_transfer_type" invisible="not fleet_transfer_type" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_picking_search_fleet" model="ir.ui.view">
+        <field name="name">stock.picking.search.fleet</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="workshop_material_request_id"/>
+                <filter string="Workshop Issues" name="fleet_issue" domain="[('fleet_transfer_type', '=', 'issue')]"/>
+                <filter string="Workshop Returns" name="fleet_return"
+                        domain="[('fleet_transfer_type', 'in', ('return', 'part_return'))]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_purchase_order_form_fleet" model="ir.ui.view">
+        <field name="name">purchase.order.form.fleet</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <field name="partner_ref" position="after">
+                <field name="workshop_material_request_id" invisible="not workshop_material_request_id" readonly="1"/>
+                <field name="fleet_job_id" invisible="not fleet_job_id"/>
+                <field name="fleet_vehicle_id" invisible="not fleet_vehicle_id"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

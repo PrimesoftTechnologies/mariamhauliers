@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+
+    <!-- Replace the previous inspection categories/items with the checklist structure. -->
+    <record id="cat_compliance" model="fleet.inspection.category">
+        <field name="name">1. COMPLIANCE</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="cat_maintenance_cleanliness" model="fleet.inspection.category">
+        <field name="name">2. MAINTENANCE/CLEANLINESS</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="cat_driver_equipment" model="fleet.inspection.category">
+        <field name="name">3. DRIVER EQUIPMENTS</field>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="cat_tires" model="fleet.inspection.category">
+        <field name="name">4. TIRES</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <!-- Inspection items -->
+    <record id="item_compliance_1" model="fleet.inspection.item">
+        <field name="name">Insurance Certificate</field>
+        <field name="category_id" ref="cat_compliance"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="item_compliance_2" model="fleet.inspection.item">
+        <field name="name">COMESA</field>
+        <field name="category_id" ref="cat_compliance"/>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="item_compliance_3" model="fleet.inspection.item">
+        <field name="name">C28</field>
+        <field name="category_id" ref="cat_compliance"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="item_compliance_4" model="fleet.inspection.item">
+        <field name="name">LATRA</field>
+        <field name="category_id" ref="cat_compliance"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="item_compliance_5" model="fleet.inspection.item">
+        <field name="name">Traffic Fines / Penalties</field>
+        <field name="category_id" ref="cat_compliance"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_1" model="fleet.inspection.item">
+        <field name="name">Usafi (ndani)</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_2" model="fleet.inspection.item">
+        <field name="name">Brake system</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_3" model="fleet.inspection.item">
+        <field name="name">Trailer Legs</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_4" model="fleet.inspection.item">
+        <field name="name">Lights</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_5" model="fleet.inspection.item">
+        <field name="name">Horn</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_6" model="fleet.inspection.item">
+        <field name="name">Suspension System</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">60</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_7" model="fleet.inspection.item">
+        <field name="name">Battery</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="position_id" ref="position_battery"/>
+        <field name="sequence">70</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_8" model="fleet.inspection.item">
+        <field name="name">Engine</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">80</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_9" model="fleet.inspection.item">
+        <field name="name">Fluid Levels</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">90</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_10" model="fleet.inspection.item">
+        <field name="name">Fuel Level (liters)</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">100</field>
+    </record>
+
+    <record id="item_maintenance_cleanliness_11" model="fleet.inspection.item">
+        <field name="name">Odometer (km)</field>
+        <field name="category_id" ref="cat_maintenance_cleanliness"/>
+        <field name="sequence">110</field>
+    </record>
+
+    <record id="item_driver_equipment_1" model="fleet.inspection.item">
+        <field name="name">Tarpaulins</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="item_driver_equipment_2" model="fleet.inspection.item">
+        <field name="name">Jacks</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="item_driver_equipment_3" model="fleet.inspection.item">
+        <field name="name">Spare Tire</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="position_id" ref="position_spare"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="item_driver_equipment_4" model="fleet.inspection.item">
+        <field name="name">Cargo Belts (QTY)</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="item_driver_equipment_5" model="fleet.inspection.item">
+        <field name="name">Fire Extinguisher</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="item_driver_equipment_6" model="fleet.inspection.item">
+        <field name="name">Reflective Triangles</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">60</field>
+    </record>
+
+    <record id="item_driver_equipment_7" model="fleet.inspection.item">
+        <field name="name">Toolbox</field>
+        <field name="category_id" ref="cat_driver_equipment"/>
+        <field name="sequence">70</field>
+    </record>
+
+    <record id="item_tires_1" model="fleet.inspection.item">
+        <field name="name">FL</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_fl"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="item_tires_2" model="fleet.inspection.item">
+        <field name="name">FR</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_fr"/>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="item_tires_3" model="fleet.inspection.item">
+        <field name="name">D1LI</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d1li"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="item_tires_4" model="fleet.inspection.item">
+        <field name="name">D1LO</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d1lo"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="item_tires_5" model="fleet.inspection.item">
+        <field name="name">D1RI</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d1ri"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="item_tires_6" model="fleet.inspection.item">
+        <field name="name">D1RO</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d1ro"/>
+        <field name="sequence">60</field>
+    </record>
+
+    <record id="item_tires_7" model="fleet.inspection.item">
+        <field name="name">D2LI</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d2li"/>
+        <field name="sequence">70</field>
+    </record>
+
+    <record id="item_tires_8" model="fleet.inspection.item">
+        <field name="name">D2LO</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d2lo"/>
+        <field name="sequence">80</field>
+    </record>
+
+    <record id="item_tires_9" model="fleet.inspection.item">
+        <field name="name">D2RI</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d2ri"/>
+        <field name="sequence">90</field>
+    </record>
+
+    <record id="item_tires_10" model="fleet.inspection.item">
+        <field name="name">D2RO</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_d2ro"/>
+        <field name="sequence">100</field>
+    </record>
+
+    <record id="item_tires_11" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 1</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_1"/>
+        <field name="sequence">110</field>
+    </record>
+
+    <record id="item_tires_12" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 2</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_2"/>
+        <field name="sequence">120</field>
+    </record>
+
+    <record id="item_tires_13" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 3</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_3"/>
+        <field name="sequence">130</field>
+    </record>
+
+    <record id="item_tires_14" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 4</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_4"/>
+        <field name="sequence">140</field>
+    </record>
+
+    <record id="item_tires_15" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 5</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_5"/>
+        <field name="sequence">150</field>
+    </record>
+
+    <record id="item_tires_16" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 6</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_6"/>
+        <field name="sequence">160</field>
+    </record>
+
+    <record id="item_tires_17" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 7</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_7"/>
+        <field name="sequence">170</field>
+    </record>
+
+    <record id="item_tires_18" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 8</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_8"/>
+        <field name="sequence">180</field>
+    </record>
+
+    <record id="item_tires_19" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 9</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_9"/>
+        <field name="sequence">190</field>
+    </record>
+
+    <record id="item_tires_20" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 10</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_10"/>
+        <field name="sequence">200</field>
+    </record>
+
+    <record id="item_tires_21" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 11</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_11"/>
+        <field name="sequence">210</field>
+    </record>
+
+    <record id="item_tires_22" model="fleet.inspection.item">
+        <field name="name">SEMI/LINK - 12</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_semi_12"/>
+        <field name="sequence">220</field>
+    </record>
+
+    <record id="item_tires_23" model="fleet.inspection.item">
+        <field name="name">LINK/DENGLER - 13</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_dengler_13"/>
+        <field name="sequence">230</field>
+    </record>
+
+    <record id="item_tires_24" model="fleet.inspection.item">
+        <field name="name">LINK/DENGLER - 14</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_dengler_14"/>
+        <field name="sequence">240</field>
+    </record>
+
+    <record id="item_tires_25" model="fleet.inspection.item">
+        <field name="name">LINK/DENGLER - 15</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_dengler_15"/>
+        <field name="sequence">250</field>
+    </record>
+
+    <record id="item_tires_26" model="fleet.inspection.item">
+        <field name="name">LINK/DENGLER - 16</field>
+        <field name="category_id" ref="cat_tires"/>
+        <field name="position_id" ref="position_dengler_16"/>
+        <field name="sequence">260</field>
+    </record>
+
+</odoo>

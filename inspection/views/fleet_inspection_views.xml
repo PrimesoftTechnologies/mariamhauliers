@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======================= FORM ======================= -->
+    <record id="view_fleet_inspection_form" model="ir.ui.view">
+        <field name="name">fleet.inspection.form</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start" type="object" string="Start Inspection"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_complete" type="object" string="Complete"
+                            class="btn-primary" invisible="state != 'in_progress'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'completed'"
+                            groups="inspection.group_inspection_manager"/>
+                    <button name="action_return_to_inspector" type="object" string="Return to Inspector"
+                            invisible="state != 'completed'"
+                            groups="inspection.group_inspection_manager"/>
+                    <button name="action_create_maintenance" type="object" string="Create Job Cards"
+                            class="btn-primary" invisible="unassigned_defect_count == 0 or state != 'approved'"/>
+                    <button name="%(inspection.action_report_fleet_inspection)d" type="action" string="Print"
+                            invisible="state not in ('completed', 'approved')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('cancel', 'approved')"/>
+                    <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('approved', 'cancel')"
+                            groups="inspection.group_inspection_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,completed,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_services" type="object" class="oe_stat_button"
+                                icon="fa-wrench" invisible="service_count == 0">
+                            <field name="service_count" widget="statinfo" string="Job Cards"/>
+                        </button>
+                        <button name="action_view_previous_inspections" type="object" class="oe_stat_button"
+                                icon="fa-history" invisible="not vehicle_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Vehicle</span>
+                                <span class="o_stat_text">History</span>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Fail" bg_color="text-bg-danger" invisible="result != 'fail'"/>
+                    <widget name="web_ribbon" title="Pass with Defects" bg_color="text-bg-warning" invisible="result != 'pass_defects'"/>
+                    <widget name="web_ribbon" title="Pass" bg_color="text-bg-success" invisible="result != 'pass'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-warning py-2" role="alert"
+                         invisible="state != 'approved' or unassigned_defect_count == 0">
+                        <i class="fa fa-exclamation-triangle me-1" title="Warning"/>
+                        <field name="unassigned_defect_count" class="fw-bold d-inline"/> defect(s) have no job card yet.
+                        Use <b>Create Job Cards</b> to send them to the workshop - one job card per job type
+                        (e.g. Mechanical, Electrical).
+                    </div>
+                    <div class="alert alert-info py-2" role="alert" invisible="repeat_defect_count == 0">
+                        <i class="fa fa-repeat me-1" title="Repeat"/>
+                        <field name="repeat_defect_count" class="fw-bold d-inline"/> repeat defect(s): these items
+                        were already reported defective on the previous inspection of this vehicle.
+                    </div>
+                    <group>
+                        <group string="Vehicle">
+                            <field name="vehicle_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="registration_number"/>
+                            <label for="odometer_reading"/>
+                            <div class="o_row">
+                                <field name="odometer_reading" readonly="state not in ('draft', 'in_progress')"/>
+                                <field name="odometer_unit"/>
+                            </div>
+                        </group>
+                        <group string="Inspection">
+                            <field name="inspection_type"/>
+                            <field name="check_round"/>
+                            <field name="date"/>
+                            <field name="branch"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="People">
+                            <field name="driver_id"/>
+                            <field name="mechanic_id"/>
+                            <field name="supervisor_id"/>
+                            <field name="approved_by_id" invisible="not approved_by_id"/>
+                        </group>
+                        <group string="Result">
+                            <field name="total_items"/>
+                            <field name="good_count"/>
+                            <field name="defective_count"/>
+                            <field name="na_count"/>
+                            <field name="health_score" widget="progressbar" invisible="total_items == 0"/>
+                            <field name="result" widget="badge"
+                                   decoration-success="result == 'pass'"
+                                   decoration-warning="result == 'pass_defects'"
+                                   decoration-danger="result == 'fail'"/>
+                            <field name="fixed_defect_count" invisible="defective_count == 0"/>
+                            <field name="job_card_status" widget="badge"
+                                   invisible="state != 'approved'"
+                                   decoration-success="job_card_status in ('assigned', 'no_defects', 'repaired')"
+                                   decoration-warning="job_card_status == 'partial'"
+                                   decoration-danger="job_card_status == 'pending'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Checklist" name="checklist">
+                            <button name="action_load_checklist" type="object" string="Load / Reload Checklist"
+                                    class="btn-secondary mb-2" invisible="state not in ('draft', 'in_progress')"
+                                    confirm="Reloading will replace the current checklist lines. Continue?"/>
+                            <field name="line_ids" widget="inspection_checklist"
+                                   readonly="state not in ('draft', 'in_progress')">
+                                <list editable="bottom" limit="1000"
+                                      decoration-danger="result == 'defective' and severity == 'high'"
+                                      decoration-warning="result == 'defective' and severity != 'high'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="category_id"/>
+                                    <field name="item_id" domain="[('category_id', '=', category_id)]"/>
+                                    <field name="result" widget="radio" options="{'horizontal': true}"/>
+                                    <field name="severity" invisible="result != 'defective'"/>
+                                    <field name="job_type_id" invisible="result != 'defective'"
+                                           options="{'no_create': True}" optional="show"/>
+                                    <field name="position_id" optional="hide"/>
+                                    <field name="lot_id" invisible="not position_id" optional="show"
+                                           options="{'no_create': True}"/>
+                                    <field name="tread_depth" invisible="not position_id" optional="show"/>
+                                    <field name="pressure" invisible="not position_id" optional="show"/>
+                                    <field name="comment"/>
+                                    <field name="photo" widget="image" options="{'size': [40, 40]}"/>
+                                    <field name="is_repeat_defect" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Defects &amp; Job Cards" name="defects" invisible="defective_count == 0">
+                            <field name="defective_line_ids">
+                                <list decoration-danger="severity == 'high'" decoration-warning="severity == 'medium'"
+                                      create="0" delete="0">
+                                    <field name="category_id"/>
+                                    <field name="item_id"/>
+                                    <field name="severity" widget="badge"
+                                           decoration-danger="severity == 'high'"
+                                           decoration-warning="severity == 'medium'"/>
+                                    <field name="comment"/>
+                                    <field name="is_repeat_defect" widget="boolean_toggle" readonly="1"/>
+                                    <field name="job_type_id" widget="badge"/>
+                                    <field name="job_card_id"/>
+                                    <field name="repair_state" widget="badge"
+                                           decoration-success="repair_state == 'fixed'"
+                                           decoration-info="repair_state == 'in_repair'"
+                                           decoration-danger="repair_state == 'pending'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Sign Off" name="signoff">
+                            <group>
+                                <group string="Driver">
+                                    <field name="driver_signature" widget="signature"/>
+                                    <field name="driver_signature_date" readonly="1"/>
+                                </group>
+                                <group string="Mechanic">
+                                    <field name="mechanic_signature" widget="signature"/>
+                                    <field name="mechanic_signature_date" readonly="1"/>
+                                </group>
+                                <group string="Supervisor Approval">
+                                    <field name="supervisor_signature" widget="signature"/>
+                                    <field name="supervisor_signature_date" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Remarks" name="remarks">
+                            <field name="remarks" placeholder="Recommendations, required repairs, observations..."/>
+                        </page>
+                        <page string="Timing" name="timing">
+                            <group>
+                                <group>
+                                    <field name="start_datetime"/>
+                                    <field name="end_datetime"/>
+                                    <field name="duration" widget="float_time"/>
+                                </group>
+                                <group>
+                                    <field name="approved_on"/>
+                                    <field name="odometer" string="Vehicle Odometer (latest)"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ======================= LIST ======================= -->
+    <record id="view_fleet_inspection_list" model="ir.ui.view">
+        <field name="name">fleet.inspection.list</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="result == 'fail'" decoration-warning="result == 'pass_defects'"
+                  decoration-success="result == 'pass'" sample="1">
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="registration_number" optional="show"/>
+                <field name="driver_id" optional="show"/>
+                <field name="mechanic_id"/>
+                <field name="date"/>
+                <field name="inspection_type" optional="show"/>
+                <field name="odometer_reading" optional="hide"/>
+                <field name="defective_count" sum="Total"/>
+                <field name="high_defect_count" optional="hide" sum="Total"/>
+                <field name="health_score" widget="progressbar" optional="show"/>
+                <field name="result" widget="badge"
+                       decoration-success="result == 'pass'"
+                       decoration-warning="result == 'pass_defects'"
+                       decoration-danger="result == 'fail'"/>
+                <field name="job_card_status" widget="badge" optional="show"
+                       decoration-success="job_card_status in ('assigned', 'no_defects', 'repaired')"
+                       decoration-warning="job_card_status == 'partial'"
+                       decoration-danger="job_card_status == 'pending'"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('draft', 'in_progress')"
+                       decoration-warning="state == 'completed'"
+                       decoration-success="state == 'approved'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ======================= KANBAN ======================= -->
+    <record id="view_fleet_inspection_kanban" model="ir.ui.view">
+        <field name="name">fleet.inspection.kanban</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column" sample="1" quick_create="false">
+                <field name="result"/>
+                <field name="state"/>
+                <progressbar field="result"
+                             colors='{"pass": "success", "pass_defects": "warning", "fail": "danger"}'/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="name" class="fw-bold"/>
+                            <field name="result" widget="badge"
+                                   decoration-success="result == 'pass'"
+                                   decoration-warning="result == 'pass_defects'"
+                                   decoration-danger="result == 'fail'"/>
+                        </div>
+                        <field name="vehicle_id" class="text-truncate"/>
+                        <div class="text-muted small">
+                            <i class="fa fa-user me-1" title="Mechanic"/><field name="mechanic_id"/>
+                        </div>
+                        <footer class="pt-1">
+                            <div class="small text-muted">
+                                <i class="fa fa-calendar me-1" title="Date"/><field name="date"/>
+                            </div>
+                            <div class="ms-auto small">
+                                <span class="badge text-bg-light" title="Defects">
+                                    <i class="fa fa-exclamation-circle me-1"/><field name="defective_count"/>
+                                </span>
+                            </div>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ======================= SEARCH ======================= -->
+    <record id="view_fleet_inspection_search" model="ir.ui.view">
+        <field name="name">fleet.inspection.search</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Inspection / Vehicle / Plate"
+                       filter_domain="['|', '|', '|', ('name', 'ilike', self), ('vehicle_id', 'ilike', self), ('registration_number', 'ilike', self), ('chassis_number', 'ilike', self)]"/>
+                <field name="vehicle_id"/>
+                <field name="registration_number"/>
+                <field name="chassis_number"/>
+                <field name="driver_id"/>
+                <field name="mechanic_id"/>
+                <field name="supervisor_id"/>
+                <field name="branch"/>
+                <field name="line_ids" string="Defective Item"
+                       filter_domain="[('line_ids', 'any', [('result', '=', 'defective'), '|', ('item_id', 'ilike', self), ('comment', 'ilike', self)])]"/>
+                <field name="line_ids" string="Defect Category"
+                       filter_domain="[('line_ids', 'any', [('result', '=', 'defective'), ('category_id', 'ilike', self)])]"/>
+                <field name="service_ids" string="Job Card"/>
+                <field name="inspection_type"/>
+                <filter string="My Inspections" name="my" domain="[('create_uid', '=', uid)]"/>
+                <separator/>
+                <filter string="Today" name="today" domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Month" name="this_month"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter string="Date" name="filter_date" date="date"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter string="To Approve" name="completed" domain="[('state', '=', 'completed')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <separator/>
+                <filter string="Passed" name="passed" domain="[('result', '=', 'pass')]"/>
+                <filter string="Pass with Defects" name="pass_defects" domain="[('result', '=', 'pass_defects')]"/>
+                <filter string="Failed" name="failed" domain="[('result', '=', 'fail')]"/>
+                <separator/>
+                <filter string="Awaiting Job Card" name="awaiting_job_card"
+                        domain="[('state', '=', 'approved'), ('job_card_status', 'in', ('pending', 'partial'))]"/>
+                <filter string="High Severity Defects" name="high_defects" domain="[('high_defect_count', '&gt;', 0)]"/>
+                <filter string="Repeat Defects" name="repeat_defects" domain="[('repeat_defect_count', '&gt;', 0)]"/>
+                <separator/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Driver" name="group_driver" context="{'group_by': 'driver_id'}"/>
+                    <filter string="Mechanic" name="group_mechanic" context="{'group_by': 'mechanic_id'}"/>
+                    <filter string="Result" name="group_result" context="{'group_by': 'result'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Job Card Status" name="group_job_card_status" context="{'group_by': 'job_card_status'}"/>
+                    <filter string="Inspection Type" name="group_type" context="{'group_by': 'inspection_type'}"/>
+                    <filter string="Branch" name="group_branch" context="{'group_by': 'branch'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-tasks" enable_counters="1"/>
+                    <field name="result" icon="fa-check-circle" enable_counters="1"/>
+                    <field name="inspection_type" icon="fa-tag" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <!-- ======================= GRAPH / PIVOT ======================= -->
+    <record id="view_fleet_inspection_graph" model="ir.ui.view">
+        <field name="name">fleet.inspection.graph</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <graph string="Inspection Analysis" type="bar" stacked="1" sample="1">
+                <field name="date" interval="week"/>
+                <field name="result"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_fleet_inspection_pivot" model="ir.ui.view">
+        <field name="name">fleet.inspection.pivot</field>
+        <field name="model">fleet.inspection</field>
+        <field name="arch" type="xml">
+            <pivot string="Inspection Analysis" sample="1">
+                <field name="vehicle_id" type="row"/>
+                <field name="result" type="col"/>
+                <field name="defective_count" type="measure"/>
+                <field name="high_defect_count" type="measure"/>
+                <field name="health_score" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ======================= DEFECT LINES ======================= -->
+    <record id="view_fleet_inspection_line_list_defects" model="ir.ui.view">
+        <field name="name">fleet.inspection.line.list.defects</field>
+        <field name="model">fleet.inspection.line</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="severity == 'high'" decoration-warning="severity == 'medium'"
+                  create="0" edit="0">
+                <field name="inspection_id"/>
+                <field name="inspection_date"/>
+                <field name="vehicle_id"/>
+                <field name="category_id"/>
+                <field name="item_id"/>
+                <field name="severity" widget="badge"
+                       decoration-danger="severity == 'high'"
+                       decoration-warning="severity == 'medium'"/>
+                <field name="comment"/>
+                <field name="job_type_id" optional="show"/>
+                <field name="job_card_id" optional="show"/>
+                <field name="repair_state" widget="badge" optional="show"
+                       decoration-success="repair_state == 'fixed'"
+                       decoration-info="repair_state == 'in_repair'"
+                       decoration-danger="repair_state == 'pending'"/>
+                <field name="lot_id" optional="hide"/>
+                <field name="tread_depth" optional="hide"/>
+                <field name="is_repeat_defect" optional="show"/>
+                <field name="mechanic_id" optional="hide"/>
+                <field name="inspection_state" optional="hide"/>
+                <button name="action_open_inspection" type="object" icon="fa-external-link"
+                        title="Open Inspection" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fleet_inspection_line_search" model="ir.ui.view">
+        <field name="name">fleet.inspection.line.search</field>
+        <field name="model">fleet.inspection.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="item_id"/>
+                <field name="category_id"/>
+                <field name="vehicle_id"/>
+                <field name="inspection_id"/>
+                <field name="comment"/>
+                <field name="job_type_id"/>
+                <field name="job_card_id"/>
+                <filter string="High" name="high" domain="[('severity', '=', 'high')]"/>
+                <filter string="Medium" name="medium" domain="[('severity', '=', 'medium')]"/>
+                <filter string="Low" name="low" domain="[('severity', '=', 'low')]"/>
+                <separator/>
+                <filter string="Without Job Card" name="no_job_card" domain="[('job_card_id', '=', False)]"/>
+                <filter string="With Job Card" name="with_job_card" domain="[('job_card_id', '!=', False)]"/>
+                <filter string="Repeat Defects" name="repeat" domain="[('is_repeat_defect', '=', True)]"/>
+                <filter string="In Repair" name="in_repair" domain="[('repair_state', '=', 'in_repair')]"/>
+                <filter string="Fixed" name="fixed" domain="[('repair_state', '=', 'fixed')]"/>
+                <filter string="Worn Tyres" name="worn" domain="[('below_min_tread', '=', True)]"/>
+                <separator/>
+                <filter string="Approved Inspections" name="approved" domain="[('inspection_state', '=', 'approved')]"/>
+                <filter string="Inspection Date" name="filter_inspection_date" date="inspection_date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Category" name="group_by_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Item" name="group_by_item" context="{'group_by': 'item_id'}"/>
+                    <filter string="Vehicle" name="group_by_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Job Type" name="group_by_job_type" context="{'group_by': 'job_type_id'}"/>
+                    <filter string="Severity" name="group_by_severity" context="{'group_by': 'severity'}"/>
+                    <filter string="Job Card" name="group_by_job_card" context="{'group_by': 'job_card_id'}"/>
+                    <filter string="Repair Status" name="group_by_repair_state" context="{'group_by': 'repair_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_fleet_inspection_line_graph_category" model="ir.ui.view">
+        <field name="name">fleet.inspection.line.graph.category</field>
+        <field name="model">fleet.inspection.line</field>
+        <field name="arch" type="xml">
+            <graph string="Defects by Category" type="bar" stacked="1">
+                <field name="category_id"/>
+                <field name="severity"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_fleet_inspection_line_pivot" model="ir.ui.view">
+        <field name="name">fleet.inspection.line.pivot</field>
+        <field name="model">fleet.inspection.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Defect Analysis">
+                <field name="category_id" type="row"/>
+                <field name="severity" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ======================= ACTIONS ======================= -->
+    <record id="action_fleet_inspection" model="ir.actions.act_window">
+        <field name="name">Inspections</field>
+        <field name="res_model">fleet.inspection</field>
+        <field name="view_mode">list,kanban,form,graph,pivot</field>
+        <field name="search_view_id" ref="view_fleet_inspection_search"/>
+        <field name="context">{'search_default_this_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first vehicle inspection</p>
+            <p>Digital replacement for the paper Mechanical Inspection Form.</p>
+        </field>
+    </record>
+
+    <record id="action_fleet_inspection_analysis" model="ir.actions.act_window">
+        <field name="name">Inspection Analysis</field>
+        <field name="res_model">fleet.inspection</field>
+        <field name="view_mode">graph,pivot,list,form</field>
+        <field name="search_view_id" ref="view_fleet_inspection_search"/>
+        <field name="context">{'search_default_this_month': 1}</field>
+    </record>
+
+    <record id="action_fleet_inspection_to_approve" model="ir.actions.act_window">
+        <field name="name">To Approve</field>
+        <field name="res_model">fleet.inspection</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_fleet_inspection_search"/>
+        <field name="context">{'search_default_completed': 1}</field>
+    </record>
+
+    <record id="action_fleet_inspection_awaiting_job" model="ir.actions.act_window">
+        <field name="name">Awaiting Job Cards</field>
+        <field name="res_model">fleet.inspection</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_fleet_inspection_search"/>
+        <field name="context">{'search_default_awaiting_job_card': 1}</field>
+    </record>
+
+    <record id="action_fleet_inspection_defects" model="ir.actions.act_window">
+        <field name="name">Defects</field>
+        <field name="res_model">fleet.inspection.line</field>
+        <field name="view_mode">list,graph,pivot</field>
+        <field name="domain">[('result', '=', 'defective'), ('inspection_state', '!=', 'cancel')]</field>
+        <field name="search_view_id" ref="view_fleet_inspection_line_search"/>
+        <field name="context">{'search_default_group_by_category': 1}</field>
+    </record>
+
+    <record id="action_fleet_inspection_open_defects" model="ir.actions.act_window">
+        <field name="name">Defects without Job Card</field>
+        <field name="res_model">fleet.inspection.line</field>
+        <field name="view_mode">list,graph,pivot</field>
+        <field name="domain">[('result', '=', 'defective'), ('inspection_state', '=', 'approved')]</field>
+        <field name="search_view_id" ref="view_fleet_inspection_line_search"/>
+        <field name="context">{'search_default_no_job_card': 1, 'search_default_group_by_vehicle': 1}</field>
+    </record>
+
+    <!-- ======================= DASHBOARD ======================= -->
+    <record id="action_inspection_dashboard" model="ir.actions.client">
+        <field name="name">Inspection Dashboard</field>
+        <field name="tag">inspection.dashboard</field>
+    </record>
+
+</odoo>

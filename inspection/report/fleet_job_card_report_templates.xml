@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_fleet_job_card_document">
+        <t t-call="web.external_layout">
+            <t t-call="inspection.report_inspection_styles"/>
+            <t t-set="sev_labels" t-value="dict(o.job_line_ids._fields['severity'].selection)"/>
+            <t t-set="show_cost" t-value="user.has_group('inspection.group_workshop_supervisor')"/>
+            <div class="page">
+                <table style="width:100%; margin-bottom: 8px;">
+                    <tr>
+                        <td>
+                            <p class="insp-h">Job Card <span t-field="o.job_number"/></p>
+                            <span class="insp-sub">
+                                <span t-field="o.service_type"/>
+                                <t t-if="o.inspection_job_type_id"> - <span t-field="o.inspection_job_type_id.name"/></t>
+                                - <span t-field="o.state"/> - Priority: <span t-field="o.priority"/>
+                            </span>
+                        </td>
+                        <td style="text-align:right; vertical-align: middle;" t-if="o.description">
+                            <span class="insp-sub" t-field="o.description"/>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="insp-table" style="margin-bottom: 8px;">
+                    <tr>
+                        <td><strong>Vehicle:</strong> <span t-field="o.vehicle_id.name"/></td>
+                        <td><strong>Plate:</strong> <span t-field="o.vehicle_id.license_plate"/></td>
+                        <td><strong>Mileage:</strong> <span t-field="o.current_mileage"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Driver:</strong> <span t-field="o.driver_id.name"/></td>
+                        <td><strong>Workshop:</strong> <span t-field="o.workshop_id.name"/></td>
+                        <td><strong>Inspection:</strong> <span t-field="o.inspection_id.name"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technician:</strong> <span t-field="o.technician_id.name"/></td>
+                        <td><strong>Supervisor:</strong> <span t-field="o.supervisor_id.name"/></td>
+                        <td><strong>Approved by:</strong> <span t-field="o.approved_by_id.name"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Opened:</strong> <span t-field="o.date"/></td>
+                        <td><strong>Started:</strong> <span t-field="o.start_date"/></td>
+                        <td><strong>Completed:</strong> <span t-field="o.completion_date"/>
+                            <t t-if="o.downtime_days"> (<t t-esc="'%.0f' % o.downtime_days"/> day(s) downtime)</t>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="insp-section">Repair Tasks / Defects</div>
+                <table class="insp-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th><th>Problem</th><th>Position</th><th>Severity</th>
+                            <th>Recommendation / Action Taken</th><th>Done by</th><th style="width:8%">Done</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="o.job_line_ids" t-as="line" t-attf-class="insp-row-#{line.severity if not line.completed else ''}">
+                            <td t-esc="line.category_id.name or ''"/>
+                            <td t-esc="line.problem"/>
+                            <td>
+                                <t t-esc="line.position_id.code or ''"/>
+                                <span t-if="line.lot_id" class="insp-muted"> <t t-esc="line.lot_id.name"/></span>
+                            </td>
+                            <td t-attf-class="insp-sev-#{line.severity}" t-esc="sev_labels.get(line.severity)"/>
+                            <td>
+                                <t t-esc="line.recommendation or ''"/>
+                                <div t-if="line.action_taken"><i>Done: </i><t t-esc="line.action_taken"/></div>
+                            </td>
+                            <td t-esc="line.completed_by.name or ''"/>
+                            <td t-esc="'Yes' if line.completed else 'No'"/>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <t t-set="mr_lines" t-value="o.material_request_ids.filtered(lambda m: m.state not in ('cancel', 'rejected')).line_ids"/>
+                <t t-if="mr_lines">
+                    <div class="insp-section">Parts Requested / Used</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th><th>Product</th><th>Approved</th><th>From Stock</th><th>Purchased</th>
+                                <th>Issued</th><th>Used</th><th>Returned</th><th>Serial Nos.</th>
+                                <th t-if="show_cost" style="text-align:right">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="mr_lines" t-as="line">
+                                <td t-esc="line.request_id.name"/>
+                                <td t-esc="line.product_id.display_name"/>
+                                <td t-esc="line.approved_qty"/>
+                                <td t-esc="line.qty_from_stock"/>
+                                <td t-esc="line.purchased_qty"/>
+                                <td t-esc="line.issued_qty"/>
+                                <td t-esc="line.used_qty"/>
+                                <td t-esc="line.returned_qty"/>
+                                <td t-esc="', '.join(line.issued_lot_ids.mapped('name'))"/>
+                                <td t-if="show_cost" style="text-align:right" t-esc="'%.2f' % line.consumed_cost"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <t t-if="o.installed_part_ids or o.removed_part_ids">
+                    <div class="insp-section">Tyres / Parts Fitted and Removed</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr><th>Movement</th><th>Position</th><th>Part</th><th>Serial No.</th><th>Km</th><th>Reason / Destination</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="o.removed_part_ids" t-as="p">
+                                <td>Removed</td>
+                                <td t-esc="p.position_id.display_name or p.position or ''"/>
+                                <td t-esc="p.product_id.display_name or p.name"/>
+                                <td t-esc="p.part_number or ''"/>
+                                <td><t t-esc="'%.0f' % p.mileage_at_removal"/> (covered <t t-esc="'%.0f' % p.mileage_covered"/>)</td>
+                                <td><span t-field="p.removal_reason"/> / <span t-field="p.removal_destination"/></td>
+                            </tr>
+                            <tr t-foreach="o.installed_part_ids" t-as="p">
+                                <td>Fitted</td>
+                                <td t-esc="p.position_id.display_name or p.position or ''"/>
+                                <td t-esc="p.product_id.display_name or p.name"/>
+                                <td t-esc="p.part_number or ''"/>
+                                <td t-esc="'%.0f' % p.mileage_at_install"/>
+                                <td/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <t t-if="o.labour_line_ids">
+                    <div class="insp-section">Labour</div>
+                    <table class="insp-table">
+                        <thead>
+                            <tr><th>Date</th><th>Technician</th><th>Work Performed</th><th>Hours</th>
+                                <th t-if="show_cost" style="text-align:right">Amount</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="o.labour_line_ids" t-as="lline">
+                                <td><span t-field="lline.date"/></td>
+                                <td t-esc="lline.employee_id.name"/>
+                                <td t-esc="lline.description or ''"/>
+                                <td t-esc="'%.2f' % lline.hours"/>
+                                <td t-if="show_cost" style="text-align:right" t-esc="'%.2f' % lline.amount"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <t t-if="o.outside_service">
+                    <div class="insp-section">Outside Service</div>
+                    <table class="insp-table">
+                        <tr>
+                            <td><strong>Vendor:</strong> <span t-field="o.vendor_id.name"/></td>
+                            <td><strong>Quotation:</strong> <span t-field="o.vendor_quotation_ref"/></td>
+                            <td t-if="show_cost"><strong>Cost:</strong> <span t-field="o.outside_cost"/></td>
+                        </tr>
+                    </table>
+                </t>
+
+                <table t-if="show_cost" style="width:100%; border-spacing: 6px; border-collapse: separate; margin-top: 8px;">
+                    <tr>
+                        <td class="insp-kpi"><div class="v" t-esc="'%.2f' % o.labour_cost"/><div class="l">Labour</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="'%.2f' % o.parts_cost"/><div class="l">Parts</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="'%.2f' % o.outside_cost"/><div class="l">Outside</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="'%.2f' % o.actual_cost"/><div class="l">Total cost</div></td>
+                        <td class="insp-kpi"><div class="v" t-esc="'%.1f' % o.labour_hours"/><div class="l">Labour hours</div></td>
+                    </tr>
+                </table>
+
+                <t t-if="o.quality_result">
+                    <div class="insp-section">Quality Check</div>
+                    <table class="insp-table">
+                        <tr>
+                            <td><strong>Result:</strong>
+                                <span t-attf-class="#{'insp-res-good' if o.quality_result == 'pass' else 'insp-res-defective'}"
+                                      t-field="o.quality_result"/></td>
+                            <td><strong>Checked by:</strong> <span t-field="o.quality_checked_by.name"/></td>
+                            <td><strong>Date:</strong> <span t-field="o.quality_check_date"/></td>
+                            <td><strong>Road test:</strong> <t t-esc="'Yes' if o.road_test_done else 'No'"/></td>
+                        </tr>
+                        <tr t-if="o.quality_notes"><td colspan="4" t-esc="o.quality_notes"/></tr>
+                    </table>
+                </t>
+
+                <p t-if="o.remarks" style="margin-top: 10px;"><strong>Remarks:</strong><br/><span t-field="o.remarks"/></p>
+
+                <table style="width:100%; margin-top: 30px; page-break-inside: avoid;">
+                    <tr>
+                        <td style="width:33%; text-align:center;">
+                            <img t-if="o.mechanic_signature" t-att-src="image_data_uri(o.mechanic_signature)" style="max-height:60px;"/>
+                            <br/>________________________<br/>
+                            Mechanic: <span t-field="o.technician_id.name"/>
+                        </td>
+                        <td style="width:33%; text-align:center;">
+                            <img t-if="o.supervisor_signature" t-att-src="image_data_uri(o.supervisor_signature)" style="max-height:60px;"/>
+                            <br/>________________________<br/>
+                            Supervisor: <span t-field="o.supervisor_id.name"/>
+                        </td>
+                        <td style="width:33%; text-align:center;">
+                            <br/>________________________<br/>
+                            Driver (vehicle received): <span t-field="o.driver_id.name"/>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_fleet_job_card">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="inspection.report_fleet_job_card_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

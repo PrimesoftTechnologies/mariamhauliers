@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_workshop_report_wizard_form" model="ir.ui.view">
+        <field name="name">fleet.workshop.report.wizard.form</field>
+        <field name="model">fleet.workshop.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Workshop Summary">
+                <group>
+                    <group string="Period (completion date)">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Filters">
+                        <field name="vehicle_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="workshop_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="job_type_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Print PDF" class="btn-primary" icon="fa-print"/>
+                    <button name="action_view_list" type="object" string="View Job Cards" class="btn-secondary"
+                            icon="fa-list"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fleet_workshop_report_wizard" model="ir.actions.act_window">
+        <field name="name">Workshop Summary</field>
+        <field name="res_model">fleet.workshop.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

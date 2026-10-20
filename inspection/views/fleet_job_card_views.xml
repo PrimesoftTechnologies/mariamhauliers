@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======================= FORM ======================= -->
+    <record id="view_fleet_job_card_form" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.form</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">0</field>
+        <field name="arch" type="xml">
+            <form string="Job Card">
+                <header>
+                    <button name="action_submit" type="object" string="Submit for Approval"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'waiting_approval'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'waiting_approval'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="action_assign" type="object" string="Assign Technician"
+                            class="btn-primary" invisible="state != 'approved'"/>
+                    <button name="action_new_material_request" type="object" string="Request Materials"
+                            icon="fa-cubes"
+                            invisible="state in ('draft', 'waiting_approval', 'quality_check', 'completed', 'cancel')"/>
+                    <button name="action_start_repair" type="object" string="Start Repair"
+                            class="btn-primary" invisible="state not in ('assigned', 'waiting_parts', 'parts_ready')"/>
+                    <button name="action_mark_waiting_parts" type="object" string="Waiting Parts"
+                            invisible="state not in ('assigned', 'parts_ready')"/>
+                    <button name="action_record_fitment" type="object" string="Record Fitment"
+                            icon="fa-circle-o-notch" class="btn-primary"
+                            invisible="pending_fitment_count == 0 or state not in ('parts_ready', 'in_progress', 'waiting_parts')"/>
+                    <button name="action_send_quality_check" type="object" string="Send to Quality Check"
+                            class="btn-primary" invisible="state != 'in_progress'"/>
+                    <button name="action_quality_pass" type="object" string="Quality: Pass &amp; Close"
+                            class="btn-primary" invisible="state != 'quality_check'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="action_quality_fail" type="object" string="Quality: Fail"
+                            invisible="state != 'quality_check'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <button name="%(inspection.action_report_fleet_job_card)d" type="action" string="Print"
+                            invisible="state == 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('cancel', 'completed')"
+                            confirm="Cancel this job card? Open material requests are cancelled too."/>
+                    <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                            invisible="state != 'cancel'"
+                            groups="inspection.group_workshop_supervisor"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,waiting_approval,approved,assigned,in_progress,quality_check,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_inspection" type="object" class="oe_stat_button"
+                                icon="fa-check-square-o" invisible="not inspection_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Inspection</span>
+                                <field name="inspection_defect_count" class="o_stat_value"/>
+                            </div>
+                        </button>
+                        <button name="action_view_material_requests" type="object" class="oe_stat_button"
+                                icon="fa-cubes">
+                            <field name="material_request_count" widget="statinfo" string="Materials"/>
+                        </button>
+                        <button name="action_view_fitted_parts" type="object" class="oe_stat_button"
+                                icon="fa-circle-o-notch">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Parts</span>
+                                <span class="o_stat_text">Fitted</span>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Overdue" bg_color="text-bg-danger" invisible="not is_overdue"/>
+                    <div class="oe_title">
+                        <h1><field name="job_number" readonly="1"/></h1>
+                        <field name="description" placeholder="Short description of the job..."/>
+                    </div>
+                    <div class="alert alert-warning py-2" role="alert"
+                         invisible="state != 'waiting_approval' or not requires_manager_approval">
+                        <i class="fa fa-gavel me-1" title="Approval"/>
+                        The estimate is above the approval limit: a <b>Fleet Manager</b> must approve this job card.
+                    </div>
+                    <div class="alert alert-info py-2" role="alert" invisible="pending_fitment_count == 0">
+                        <i class="fa fa-circle-o-notch me-1" title="Fitment"/>
+                        <field name="pending_fitment_count" class="fw-bold d-inline"/> issued serialised part(s)
+                        (tyres, batteries...) must be fitted: use <b>Record Fitment</b>.
+                    </div>
+                    <group>
+                        <group string="Vehicle">
+                            <field name="vehicle_id" options="{'no_create': True}" readonly="state not in ('draft', 'waiting_approval')"/>
+                            <field name="driver_id"/>
+                            <field name="current_mileage"/>
+                            <field name="inspection_id" invisible="not inspection_id"/>
+                            <field name="inspection_job_type_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Job">
+                            <field name="workshop_id" options="{'no_create': True}"/>
+                            <field name="service_type_id" options="{'no_create': True}"/>
+                            <field name="service_type"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="date"/>
+                            <field name="planned_end_date"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Assignment">
+                            <field name="technician_id" options="{'no_create': True}"/>
+                            <field name="supervisor_id" options="{'no_create': True}"/>
+                            <field name="approved_by_id" invisible="not approved_by_id"/>
+                            <field name="material_state" widget="badge"
+                                   decoration-success="material_state == 'issued'"
+                                   decoration-info="material_state == 'ready'"
+                                   decoration-warning="material_state in ('waiting', 'to_approve', 'draft')"/>
+                        </group>
+                        <group string="Progress">
+                            <field name="task_progress" widget="progressbar"/>
+                            <field name="start_date"/>
+                            <field name="completion_date"/>
+                            <field name="downtime_days" invisible="state != 'completed'"/>
+                            <field name="estimated_cost" groups="inspection.group_workshop_supervisor"/>
+                            <field name="actual_cost" groups="inspection.group_workshop_supervisor"/>
+                            <field name="requires_manager_approval" invisible="1"/>
+                            <field name="is_overdue" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Repair Tasks / Defects" name="job_lines">
+                            <button name="action_load_from_inspection" type="object"
+                                    string="Load Defects from Inspection" class="btn-secondary mb-2"
+                                    invisible="not inspection_id or state in ('completed', 'cancel')"/>
+                            <field name="job_line_ids" readonly="state in ('completed', 'cancel')">
+                                <list editable="bottom" decoration-muted="completed"
+                                      decoration-danger="severity == 'high' and not completed">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="category_id" optional="show"/>
+                                    <field name="problem"/>
+                                    <field name="position_id" optional="show"/>
+                                    <field name="lot_id" optional="hide"/>
+                                    <field name="severity" widget="badge"
+                                           decoration-danger="severity == 'high'"
+                                           decoration-warning="severity == 'medium'"/>
+                                    <field name="description" optional="hide"/>
+                                    <field name="recommendation" optional="show"/>
+                                    <field name="action_taken" optional="show"/>
+                                    <field name="estimated_labour" optional="show"/>
+                                    <field name="estimated_cost" optional="show"
+                                           groups="inspection.group_workshop_supervisor"/>
+                                    <field name="completed_by" optional="show"/>
+                                    <field name="completed" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Materials" name="materials">
+                            <field name="material_request_ids" readonly="1">
+                                <list decoration-warning="has_shortage" decoration-success="state == 'done'"
+                                      decoration-muted="state in ('cancel', 'rejected')">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="requested_by"/>
+                                    <field name="has_shortage" string="Shortage"/>
+                                    <field name="total_estimated_cost" groups="inspection.group_workshop_supervisor"/>
+                                    <field name="total_used_cost" groups="inspection.group_workshop_supervisor"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state in ('submitted', 'approved', 'waiting_stock')"
+                                           decoration-warning="state == 'ready'"
+                                           decoration-success="state in ('issued', 'done')"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Labour" name="labour">
+                            <field name="labour_line_ids" readonly="state in ('completed', 'cancel')">
+                                <list editable="bottom">
+                                    <field name="date"/>
+                                    <field name="employee_id" options="{'no_create': True}"/>
+                                    <field name="description"/>
+                                    <field name="hours" widget="float_time" sum="Total"/>
+                                    <field name="hourly_rate" groups="inspection.group_workshop_supervisor"/>
+                                    <field name="amount" sum="Total" groups="inspection.group_workshop_supervisor"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer" groups="inspection.group_workshop_supervisor">
+                                <field name="labour_cost"/>
+                                <field name="parts_cost"/>
+                                <field name="outside_cost"/>
+                                <field name="actual_cost" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Parts Fitted / Removed" name="installed_parts">
+                            <separator string="Fitted on this job"/>
+                            <field name="installed_part_ids" readonly="1">
+                                <list decoration-muted="status == 'removed'">
+                                    <field name="position_id"/>
+                                    <field name="product_id"/>
+                                    <field name="lot_id"/>
+                                    <field name="install_date"/>
+                                    <field name="mileage_at_install"/>
+                                    <field name="installed_by"/>
+                                    <field name="status" widget="badge"/>
+                                </list>
+                            </field>
+                            <separator string="Removed on this job"/>
+                            <field name="removed_part_ids" readonly="1">
+                                <list>
+                                    <field name="position_id"/>
+                                    <field name="product_id"/>
+                                    <field name="lot_id"/>
+                                    <field name="mileage_covered"/>
+                                    <field name="removal_reason"/>
+                                    <field name="removal_destination"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Outside Service" name="outside">
+                            <group>
+                                <group>
+                                    <field name="outside_service"/>
+                                </group>
+                                <group invisible="not outside_service">
+                                    <field name="vendor_id"/>
+                                    <field name="vendor_quotation_ref"/>
+                                    <field name="vendor_po_id" groups="purchase.group_purchase_user"/>
+                                    <field name="vendor_bill_id" groups="account.group_account_invoice"/>
+                                    <field name="outside_cost" groups="inspection.group_workshop_supervisor"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Quality Check" name="quality">
+                            <group>
+                                <group>
+                                    <field name="quality_checked_by"/>
+                                    <field name="quality_check_date" readonly="1"/>
+                                    <field name="quality_result" readonly="1"/>
+                                    <field name="road_test_done"/>
+                                </group>
+                                <group>
+                                    <field name="quality_notes" nolabel="1" colspan="2"
+                                           placeholder="Quality check findings..."/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Inspection Defects" name="inspection_defects" invisible="not inspection_line_ids">
+                            <field name="inspection_line_ids" readonly="1">
+                                <list>
+                                    <field name="category_id"/>
+                                    <field name="item_id"/>
+                                    <field name="position_id" optional="show"/>
+                                    <field name="lot_id" optional="show"/>
+                                    <field name="tread_depth" optional="show"/>
+                                    <field name="severity"/>
+                                    <field name="comment"/>
+                                    <field name="repair_state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Sign Off" name="signoff">
+                            <group>
+                                <group string="Mechanic">
+                                    <field name="mechanic_signature" widget="signature" nolabel="1" colspan="2"/>
+                                </group>
+                                <group string="Supervisor">
+                                    <field name="supervisor_signature" widget="signature" nolabel="1" colspan="2"/>
+                                </group>
+                            </group>
+                            <field name="remarks" placeholder="Remarks..."/>
+                            <field name="closed_by_id" invisible="not closed_by_id"/>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Notes..."/>
+                        </page>
+                        <page string="Approval Log" name="approvals">
+                            <field name="approval_ids" readonly="1">
+                                <list decoration-danger="state == 'rejected'">
+                                    <field name="date"/>
+                                    <field name="approval_type"/>
+                                    <field name="stage"/>
+                                    <field name="approver_id"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'rejected'"/>
+                                    <field name="comment"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ======================= LIST ======================= -->
+    <record id="view_fleet_job_card_list" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.list</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'" decoration-success="state == 'completed'"
+                  decoration-info="state == 'in_progress'" decoration-danger="is_overdue" sample="1">
+                <field name="job_number"/>
+                <field name="vehicle_id"/>
+                <field name="description" optional="hide"/>
+                <field name="inspection_job_type_id" optional="show"/>
+                <field name="technician_id"/>
+                <field name="workshop_id" optional="hide"/>
+                <field name="priority" widget="priority"/>
+                <field name="date"/>
+                <field name="planned_end_date" optional="show"/>
+                <field name="task_progress" widget="progressbar" optional="show"/>
+                <field name="material_state" widget="badge" optional="show"
+                       decoration-success="material_state == 'issued'"
+                       decoration-info="material_state == 'ready'"
+                       decoration-warning="material_state in ('waiting', 'to_approve', 'draft')"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('assigned', 'in_progress')"
+                       decoration-warning="state in ('waiting_approval', 'waiting_parts', 'quality_check')"
+                       decoration-success="state == 'completed'"/>
+                <field name="downtime_days" optional="hide"/>
+                <field name="actual_cost" sum="Total" groups="inspection.group_workshop_supervisor"/>
+                <field name="is_overdue" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ======================= KANBAN ======================= -->
+    <record id="view_fleet_job_card_kanban" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.kanban</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column" sample="1" quick_create="false"
+                    group_create="false" group_delete="false" records_draggable="false">
+                <field name="state"/>
+                <field name="is_overdue"/>
+                <field name="material_state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="job_number" class="fw-bold"/>
+                            <field name="priority" widget="priority"/>
+                        </div>
+                        <field name="vehicle_id" class="text-truncate"/>
+                        <field name="inspection_job_type_id" class="text-muted small"/>
+                        <field name="task_progress" widget="progressbar"/>
+                        <div class="text-muted small">
+                            <i class="fa fa-user me-1" title="Technician"/><field name="technician_id"/>
+                        </div>
+                        <footer class="pt-1">
+                            <field name="material_state" widget="badge"
+                                   decoration-success="material_state == 'issued'"
+                                   decoration-info="material_state == 'ready'"
+                                   decoration-warning="material_state in ('waiting', 'to_approve', 'draft')"
+                                   invisible="material_state == 'none'"/>
+                            <div class="ms-auto small">
+                                <span t-if="record.is_overdue.raw_value" class="badge text-bg-danger" title="Overdue">
+                                    <i class="fa fa-clock-o me-1"/>Overdue
+                                </span>
+                                <field name="planned_end_date" widget="remaining_days" invisible="not planned_end_date"/>
+                            </div>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ======================= SEARCH ======================= -->
+    <record id="view_fleet_job_card_search" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.search</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="job_number" string="Job Card / Vehicle"
+                       filter_domain="['|', '|', ('job_number', 'ilike', self), ('vehicle_id', 'ilike', self), ('description', 'ilike', self)]"/>
+                <field name="vehicle_id"/>
+                <field name="technician_id"/>
+                <field name="workshop_id"/>
+                <field name="inspection_id"/>
+                <field name="inspection_job_type_id"/>
+                <field name="job_line_ids" string="Task" filter_domain="[('job_line_ids.problem', 'ilike', self)]"/>
+                <filter string="My Jobs" name="my_jobs"
+                        domain="['|', ('technician_id.user_id', '=', uid), ('supervisor_id.user_id', '=', uid)]"/>
+                <separator/>
+                <filter string="Open Jobs" name="open" domain="[('state', 'not in', ('completed', 'cancel'))]"/>
+                <filter string="Waiting Approval" name="waiting_approval" domain="[('state', '=', 'waiting_approval')]"/>
+                <filter string="Waiting Parts" name="waiting_parts" domain="[('state', '=', 'waiting_parts')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter string="Quality Check" name="quality_check" domain="[('state', '=', 'quality_check')]"/>
+                <filter string="Completed" name="completed" domain="[('state', '=', 'completed')]"/>
+                <separator/>
+                <filter string="Overdue" name="overdue" domain="[('is_overdue', '=', True)]"/>
+                <filter string="Urgent / High" name="urgent" domain="[('priority', 'in', ('2', '3'))]"/>
+                <filter string="From Inspection" name="from_inspection" domain="[('inspection_id', '!=', False)]"/>
+                <filter string="Outsourced" name="outsourced" domain="[('outside_service', '=', True)]"/>
+                <separator/>
+                <filter string="Completed Today" name="completed_today"
+                        domain="[('state', '=', 'completed'), ('completion_date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter string="Completed This Month" name="completed_month"
+                        domain="[('state', '=', 'completed'), ('completion_date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter string="Completion Date" name="filter_completion_date" date="completion_date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Technician" name="group_technician" context="{'group_by': 'technician_id'}"/>
+                    <filter string="Workshop" name="group_workshop" context="{'group_by': 'workshop_id'}"/>
+                    <filter string="Job Type" name="group_job_type" context="{'group_by': 'inspection_job_type_id'}"/>
+                    <filter string="Service Type" name="group_service_type" context="{'group_by': 'service_type'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Materials" name="group_material_state" context="{'group_by': 'material_state'}"/>
+                    <filter string="Completion Month" name="group_completion" context="{'group_by': 'completion_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ======================= GRAPH / PIVOT ======================= -->
+    <record id="view_fleet_job_card_graph" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.graph</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <graph string="Workshop Cost Analysis" type="bar" sample="1">
+                <field name="vehicle_id"/>
+                <field name="actual_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_fleet_job_card_pivot" model="ir.ui.view">
+        <field name="name">fleet.vehicle.log.services.job.card.pivot</field>
+        <field name="model">fleet.vehicle.log.services</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <pivot string="Workshop Cost Analysis" sample="1">
+                <field name="vehicle_id" type="row"/>
+                <field name="inspection_job_type_id" type="col"/>
+                <field name="labour_cost" type="measure"/>
+                <field name="parts_cost" type="measure"/>
+                <field name="outside_cost" type="measure"/>
+                <field name="actual_cost" type="measure"/>
+                <field name="labour_hours" type="measure"/>
+                <field name="turnaround_hours" type="measure"/>
+                <field name="downtime_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ======================= ACTIONS ======================= -->
+    <record id="action_fleet_job_card" model="ir.actions.act_window">
+        <field name="name">Job Cards</field>
+        <field name="res_model">fleet.vehicle.log.services</field>
+        <field name="view_mode">kanban,list,form,graph,pivot</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_fleet_job_card_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_fleet_job_card_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_fleet_job_card_form')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_fleet_job_card_graph')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_fleet_job_card_pivot')})]"/>
+        <field name="search_view_id" ref="view_fleet_job_card_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first Job Card</p>
+            <p>Job cards are created from approved inspections with defects, or manually.</p>
+        </field>
+    </record>
+
+    <record id="action_fleet_job_card_my" model="ir.actions.act_window">
+        <field name="name">My Job Cards</field>
+        <field name="res_model">fleet.vehicle.log.services</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_fleet_job_card_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_fleet_job_card_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_fleet_job_card_form')})]"/>
+        <field name="search_view_id" ref="view_fleet_job_card_search"/>
+        <field name="context">{'search_default_open': 1, 'search_default_my_jobs': 1}</field>
+    </record>
+
+    <record id="action_fleet_job_card_to_approve" model="ir.actions.act_window">
+        <field name="name">Job Cards to Approve</field>
+        <field name="res_model">fleet.vehicle.log.services</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_fleet_job_card_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_fleet_job_card_form')})]"/>
+        <field name="search_view_id" ref="view_fleet_job_card_search"/>
+        <field name="context">{'search_default_waiting_approval': 1}</field>
+    </record>
+
+    <record id="action_fleet_job_card_analysis" model="ir.actions.act_window">
+        <field name="name">Workshop Cost Analysis</field>
+        <field name="res_model">fleet.vehicle.log.services</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_fleet_job_card_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_fleet_job_card_graph')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_fleet_job_card_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_fleet_job_card_form')})]"/>
+        <field name="search_view_id" ref="view_fleet_job_card_search"/>
+        <field name="context">{'search_default_completed': 1, 'search_default_completed_month': 1}</field>
+    </record>
+
+</odoo>
